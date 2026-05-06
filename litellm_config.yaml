@@ -1,0 +1,29 @@
+model_list:
+  - model_name: gemini-agent
+    litellm_params:
+      model: gemini/gemini-2.5-flash-lite
+      api_key: os.environ/GEMINI_API_KEY
+
+  - model_name: groq-agent
+    litellm_params:
+      model: groq/qwen/qwen3-32b
+      api_key: os.environ/GROQ_API_KEY
+
+  - model_name: huggingface-agent
+    litellm_params:
+      model: huggingface/meta-llama/Llama-4-Scout-17B-16E-Instruct
+      api_key: os.environ/HUGGINGFACE_API_KEY
+
+  - model_name: mistral-agent
+    litellm_params:
+      model: mistral/mistral-small-latest
+      api_key: os.environ/MISTRAL_API_KEY
+      
+
+litellm_settings:
+  num_retries: 0
+  request_timeout: 20
+  fallbacks: [{"gemini-agent": ["groq-agent","huggingface-agent","mistral-agent"]}]
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
