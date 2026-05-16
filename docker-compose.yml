@@ -1,4 +1,41 @@
+name: portfolio-agent
+
+x-app-image: &app-image
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: portfolio-agent:local
+
 services:
+  api:
+    <<: *app-image
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      LITELLM_PROXY_URL: http://litellm:4000
+      LITELLM_MODEL: ${API_LITELLM_MODEL:-gemini/gemini-2.5-flash-lite}
+      LITELLM_EMBEDDING_MODEL: ${LITELLM_EMBEDDING_MODEL:-gemini/gemini-embedding-001}
+      EMBEDDING_DIMENSION: ${EMBEDDING_DIMENSION:-3072}
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-portfolio_documents_3072}
+    command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "8000:8000"
+    depends_on:
+      litellm:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+
+  qdrant:
+    image: qdrant/qdrant:v1.17
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+    volumes:
+      - ./data/qdrant_data:/qdrant/storage
+
   postgres:
     image: postgres:16
     restart: unless-stopped
@@ -17,10 +54,7 @@ services:
       retries: 10
 
   litellm:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: portfolio-litellm:local
+    <<: *app-image
     restart: unless-stopped
     env_file:
       - .env
@@ -29,11 +63,21 @@ services:
       LITELLM_SALT_KEY: ${LITELLM_SALT_KEY:-sk-local-dev-salt-change-me}
       UI_USERNAME: ${UI_USERNAME:-admin}
       UI_PASSWORD: ${UI_PASSWORD:-admin}
-    command: ["--config", "/app/litellm_config.yaml", "--host", "0.0.0.0", "--port", "4000"]
+    command: ["litellm", "--config", "/app/litellm_config.yaml", "--host", "0.0.0.0", "--port", "4000"]
     ports:
       - "4000:4000"
-    volumes:
-      - ./litellm_config.yaml:/app/litellm_config.yaml:ro
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:4000/health/readiness', timeout=5).read()",
+        ]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+      start_period: 10s
     depends_on:
       postgres:
         condition: service_healthy

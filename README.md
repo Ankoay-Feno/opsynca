@@ -1,124 +1,124 @@
-## LiteLLM Proxy avec Gemini
+## Portfolio Agent
 
-Ce setup utilise uniquement Gemini gratuit via LiteLLM Proxy.
+Architecture simple pour une API FastAPI qui appelle un LiteLLM Proxy, indexe les documents dans Qdrant et sert une interface React.
 
-Dans `litellm_config.yaml`, le modele doit garder le prefixe provider `gemini/`, par exemple `gemini/gemini-2.5-flash-lite`. Sans ce prefixe, LiteLLM peut essayer Vertex AI et demander des credentials Google Cloud ADC.
+```txt
+api/
+  main.py              # entree FastAPI: uvicorn api.main:app
+  config.py            # variables d'environnement
+  litellm_client.py    # appels au proxy LiteLLM
+  rag/
+    router.py          # /api/rag/upload, /api/rag/chat, documents indexes
 
-Variables dans `.env` :
+docs/
+  logical.drawio       # schema logique RAG
+  cv-project-entry.md  # formulation professionnelle pour CV / portfolio
+
+litellm_config.yaml             # modeles LiteLLM
+docker-compose.yml              # api + litellm + postgres + qdrant
+Dockerfile                      # image Python commune (api / litellm)
+frontend/                       # app Vite servie par FastAPI
+  index.html / src/main.tsx     # / -> Console RAG
+  src/apps/                     # shells (topbar + nav)
+  src/views/                    # RagView
+  src/components/               # composants partages
+```
+
+## Variables
+
+Copie `.env.example` vers `.env`, puis remplis au minimum :
 
 ```env
 GEMINI_API_KEY=ta-cle-gemini
-LITELLM_MASTER_KEY=sk-remplace-par-ta-vraie-cle
+LITELLM_MASTER_KEY=sk-ta-master-key
+LITELLM_SALT_KEY=sk-une-cle-longue
+POSTGRES_PASSWORD=litellm_password
 ```
 
-Tu peux generer la master key LiteLLM comme ca :
+Le modele par defaut de l'API est :
+
+```env
+LITELLM_MODEL=gemini/gemini-2.5-flash-lite
+```
+
+Avec Docker Compose, l'API utilise plutot `API_LITELLM_MODEL` pour eviter les conflits avec une ancienne variable locale.
+
+## Lancer avec Docker
 
 ```bash
-echo "sk-$(openssl rand -hex 32)"
+docker compose up --build
 ```
 
-La master key sert seulement a appeler ton proxy LiteLLM. La cle Gemini sert seulement au proxy pour appeler Gemini.
-
-## Lancer le proxy
-
-```bash
-set -a
-source .env
-set +a
-
-echo "${GEMINI_API_KEY:+gemini key chargee}"
-echo "${LITELLM_MASTER_KEY:+master key chargee}"
-
-uv run litellm --config litellm_config.yaml
-```
-
-Si tu modifies `.env`, stoppe le proxy avec `Ctrl+C`, puis relance-le. Un proxy deja demarre ne voit pas les nouvelles variables.
-
-## Tester
-
-Dans un autre terminal :
-
-```bash
-set -a
-source .env
-set +a
-
-curl -X POST 'http://localhost:4000/chat/completions' \
-  -H 'Content-Type: application/json' \
-  -H "Authorization: Bearer $LITELLM_MASTER_KEY" \
-  -d '{
-    "model": "portfolio-agent",
-    "messages": [
-      {"role": "system", "content": "Tu es l agent personnel d Ankoay. Reponds avec le CV fourni."},
-      {"role": "user", "content": "Presente-toi rapidement."}
-    ]
-  }'
-```
-
-## Depannage
-
-`No connected db.` veut dire que la cle envoyee dans `Authorization` n'est pas la master key chargee par le proxy. Recharge `.env` dans le terminal du `curl` et relance le proxy avec le meme `.env`.
-
-`429 quota exceeded` veut dire que le quota gratuit Gemini est atteint. Comme ce setup utilise uniquement Gemini, il n'y a pas de fallback : il faut attendre le reset du quota, utiliser un autre modele Gemini disponible, ou changer de projet/cle Gemini.
-
-`503 high demand` veut dire que le modele Gemini choisi est temporairement sature. Les modeles preview peuvent avoir ce probleme plus souvent. Essaie `gemini/gemini-2.5-flash-lite` ou attends quelques minutes.
-
-Si l'erreur mentionne encore `portfolio-agent-groq`, `portfolio-agent-openrouter` ou `Fallbacks`, le proxy tourne encore avec l'ancienne config. Stoppe-le avec `Ctrl+C`, puis relance `uv run litellm --config litellm_config.yaml`.
-
-Test d'auth proxy sans consommer de quota LLM :
-
-```bash
-set -a
-source .env
-set +a
-
-curl -i 'http://localhost:4000/models' \
-  -H "Authorization: Bearer $LITELLM_MASTER_KEY"
-```
-
-## API Swagger avec FastAPI
-
-Le fichier `main.py` expose une petite API FastAPI. Le router principal est monte sur `/api`.
-
-Routes disponibles :
-
-- `GET /` : message simple.
-- `GET /api/health` : verifie la config de l'API.
-- `GET /api/models` : liste les modeles disponibles via LiteLLM Proxy.
-- `POST /api/chat` : envoie un message a `portfolio-agent`.
-
-Lance d'abord LiteLLM Proxy sur le port `4000` :
-
-```bash
-set -a
-source .env
-set +a
-
-uv run litellm --config litellm_config.yaml
-```
-
-Puis lance l'API sur le port `8000` dans un deuxieme terminal :
-
-```bash
-set -a
-source .env
-set +a
-
-uv run uvicorn main:app --reload --port 8000
-```
-
-Swagger sera disponible ici :
+Services exposes :
 
 ```txt
-http://localhost:8000/docs
+FastAPI Swagger : http://localhost:8000/docs
+LiteLLM Proxy   : http://localhost:4000
+Qdrant          : http://localhost:6333
+Postgres        : localhost:5432
 ```
 
-Test direct de l'API :
+## Frontend
+
+L'interface est dans `frontend/` et se construit en assets statiques servis par FastAPI.
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Pour generer le bundle utilise par FastAPI en local :
+
+```bash
+cd frontend
+npm run build:api
+```
+
+## Routes API
+
+```txt
+GET  /               interface React Console RAG
+GET  /api/health     verifie la configuration API
+GET  /api/models     liste les modeles via LiteLLM
+POST /api/chat       chat simple via LiteLLM
+POST /api/rag/upload
+POST /api/rag/chat
+```
+
+Le flux RAG suit ce chemin :
+
+```txt
+upload fichier -> extraction texte/OCR -> chunks -> embeddings -> Qdrant
+question -> embedding -> recherche Qdrant -> contexte -> LiteLLM
+```
+
+## Lancer en local sans Docker
+
+Demarre d'abord LiteLLM :
+
+```bash
+set -a
+source .env
+set +a
+
+uv run litellm --config litellm_config.yaml
+```
+
+Puis demarre l'API :
+
+```bash
+set -a
+source .env
+set +a
+
+uv run uvicorn api.main:app --reload --port 8000
+```
+
+Test rapide :
 
 ```bash
 curl -X POST 'http://localhost:8000/api/chat' \
   -H 'Content-Type: application/json' \
-  -d '{
-    "message": "Presente-toi rapidement."
-  }'
+  -d '{"message": "Presente-toi rapidement."}'
 ```

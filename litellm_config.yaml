@@ -4,6 +4,11 @@ model_list:
       model: gemini/gemini-2.5-flash-lite
       api_key: os.environ/GEMINI_API_KEY
 
+  - model_name: gemini/gemini-embedding-001
+    litellm_params:
+      model: gemini/gemini-embedding-001
+      api_key: os.environ/GEMINI_API_KEY
+
   - model_name: groq/qwen/qwen3-32b
     litellm_params:
       model: groq/qwen/qwen3-32b
@@ -23,7 +28,23 @@ model_list:
 litellm_settings:
   num_retries: 0
   request_timeout: 20
-  fallbacks: [{"gemini/gemini-2.5-flash-lite": ["groq/qwen/qwen3-32b","huggingface/meta-llama/Llama-4-Scout-17B-16E-Instruct","mistral/mistral-small-latest"]}]
+  fallbacks:
+    - gemini/gemini-2.5-flash-lite:
+        - groq/qwen/qwen3-32b
+        - huggingface/meta-llama/Llama-4-Scout-17B-16E-Instruct
+        - mistral/mistral-small-latest
+    - groq/qwen/qwen3-32b:
+        - gemini/gemini-2.5-flash-lite
+        - huggingface/meta-llama/Llama-4-Scout-17B-16E-Instruct
+        - mistral/mistral-small-latest
+    - huggingface/meta-llama/Llama-4-Scout-17B-16E-Instruct:
+        - gemini/gemini-2.5-flash-lite
+        - groq/qwen/qwen3-32b
+        - mistral/mistral-small-latest
+    - mistral/mistral-small-latest:
+        - gemini/gemini-2.5-flash-lite
+        - groq/qwen/qwen3-32b
+        - huggingface/meta-llama/Llama-4-Scout-17B-16E-Instruct
 
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY

@@ -1,23 +1,17 @@
 [project]
-name = "portfolio"
+name = "api"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "fastapi>=0.121.0",
+    "fastapi>=0.124.4",
     "httpx>=0.28.1",
-    "litellm[google,proxy]>=1.83.14",
-    "prisma>=0.15.0",
+    "pillow>=12.0.0",
     "pymupdf>=1.26.0",
     "pypdf>=6.0.0",
     "pytesseract>=0.3.13",
     "python-multipart>=0.0.20",
     "qdrant-client>=1.12.0",
-    "uvicorn[standard]>=0.33.0",
-]
-
-[tool.uv.workspace]
-members = [
-    "api",
+    "uvicorn>=0.33.0",
 ]
