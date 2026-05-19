@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-import os
 from collections.abc import Iterator
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-
-os.environ.setdefault("LITELLM_MASTER_KEY", "test-key")
 
 
 @pytest.fixture
@@ -16,8 +13,6 @@ def settings():
 
     get_settings.cache_clear()
     s = Settings(
-        litellm_proxy_url="http://litellm.test",
-        litellm_master_key="test-key",
         litellm_model="gemini/gemini-2.5-flash-lite",
         embedding_model="gemini/gemini-embedding-001",
     )

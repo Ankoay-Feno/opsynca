@@ -7,8 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.121.0",
     "httpx>=0.28.1",
-    "litellm[google,proxy]>=1.83.14",
-    "prisma>=0.15.0",
+    "litellm[google]>=1.83.14",
     "pymupdf>=1.26.0",
     "pypdf>=6.0.0",
     "pytesseract>=0.3.13",
