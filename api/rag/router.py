@@ -63,10 +63,16 @@ async def answer(
 ) -> AnswerResponse:
     litellm = LiteLLMClient(settings)
     tools = [{"googleSearch": {}}] if _supports_google_search(settings.litellm_model) else None
-    response = await litellm.chat(
-        _build_messages(payload.message, payload.context, payload.history),
-        tools=tools,
-    )
+    messages = _build_messages(payload.message, payload.context, payload.history)
+    try:
+        response = await litellm.chat(messages, tools=tools)
+    except HTTPException:
+        # Gemini-native googleSearch tool est incompatible avec les fallbacks
+        # Mistral/HuggingFace/Groq. Si l'appel echoue avec tools, on retente sans
+        # pour laisser la chaine de fallback repondre (sans recherche web).
+        if tools is None:
+            raise
+        response = await litellm.chat(messages, tools=None)
     message = response["choices"][0]["message"]
     raw = message.get("content", "") or ""
     text, used_indices = _parse_answer(raw, len(payload.context))
