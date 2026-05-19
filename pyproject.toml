@@ -13,11 +13,24 @@ dependencies = [
     "pypdf>=6.0.0",
     "pytesseract>=0.3.13",
     "python-multipart>=0.0.20",
-    "qdrant-client>=1.12.0",
     "uvicorn[standard]>=0.33.0",
 ]
 
 [tool.uv.workspace]
 members = [
     "api",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.3.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::DeprecationWarning",
 ]

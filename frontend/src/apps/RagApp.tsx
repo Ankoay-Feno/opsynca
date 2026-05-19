@@ -29,6 +29,20 @@ export function RagApp() {
       </header>
 
       <RagView onDocumentCountChange={setDocumentCount} />
+
+      <footer className="status-footer" aria-label="Statut">
+        <div className="status-footer-group">
+          <span className="status-pill">
+            <span className="status-dot status-dot-ready" />
+            System: Ready
+          </span>
+          <span className="status-pill">
+            <span className="status-dot status-dot-info" />
+            RAG Active
+          </span>
+        </div>
+        <span className="status-version">v1.0.0-local</span>
+      </footer>
     </main>
   );
 }

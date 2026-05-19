@@ -1,15 +1,43 @@
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
-import { Bot, ExternalLink, Globe, Loader2, Send, User } from "lucide-react";
+import {
+  Bot,
+  Database,
+  ExternalLink,
+  Globe,
+  Loader2,
+  Paperclip,
+  Search,
+  Send,
+  ShieldCheck,
+  Sparkles,
+  User,
+  WifiOff,
+} from "lucide-react";
 
-import { sendQuestion } from "../api";
-import type { ChatHistoryMessage, ChatMessage, ChatSource, WebSource } from "../types";
+import { embedTexts, requestAnswer } from "../api";
+import { getChunk, getDocument, type StoredChunk } from "../storage";
+import type {
+  ChatHistoryMessage,
+  ChatMessage,
+  ChatSource,
+  ContextChunkInput,
+  WebSource,
+} from "../types";
 import { clampNumber, errorMessage, uniqueId } from "../utils";
+import { getVectorIndex } from "../vectorSearch";
 
-const welcomeMessage: ChatMessage = {
-  id: "welcome",
-  role: "assistant",
-  content: "Pret. Pose une question sur les documents indexes.",
-};
+const SUGGESTIONS: { icon: typeof Sparkles; title: string; prompt: string }[] = [
+  {
+    icon: Sparkles,
+    title: "Synthese rapide",
+    prompt: "Resume-moi les points cles des documents indexes.",
+  },
+  {
+    icon: Search,
+    title: "Recherche ciblee",
+    prompt: "Trouve les passages qui parlent de securite et de conformite.",
+  },
+];
 
 const HISTORY_CHAR_BUDGET = 8000;
 
@@ -28,15 +56,40 @@ function buildHistory(messages: ChatMessage[]): ChatHistoryMessage[] {
   return result;
 }
 
+async function resolveLocalContext(
+  question: string,
+  topK: number,
+): Promise<{ chunks: StoredChunk[]; filenames: Map<string, string | null> }> {
+  const index = getVectorIndex();
+  if (index.size() === 0) {
+    return { chunks: [], filenames: new Map() };
+  }
+  const [queryVector] = await embedTexts([question]);
+  if (!queryVector) {
+    return { chunks: [], filenames: new Map() };
+  }
+  const hits = index.search(queryVector, topK);
+  const chunks: StoredChunk[] = [];
+  for (const hit of hits) {
+    const chunk = await getChunk(hit.chunkId);
+    if (chunk) chunks.push(chunk);
+  }
+  const filenames = new Map<string, string | null>();
+  for (const chunk of chunks) {
+    if (filenames.has(chunk.documentId)) continue;
+    const doc = await getDocument(chunk.documentId);
+    filenames.set(chunk.documentId, doc?.filename ?? null);
+  }
+  return { chunks, filenames };
+}
+
 type Props = {
   initialMessages?: ChatMessage[];
   onMessagesChange?: (messages: ChatMessage[]) => void;
 };
 
 export function ChatPanel({ initialMessages, onMessagesChange }: Props) {
-  const [messages, setMessages] = useState<ChatMessage[]>(
-    () => initialMessages ?? [welcomeMessage],
-  );
+  const [messages, setMessages] = useState<ChatMessage[]>(() => initialMessages ?? []);
   const [question, setQuestion] = useState("");
   const [topK, setTopK] = useState(5);
   const [sending, setSending] = useState(false);
@@ -44,15 +97,11 @@ export function ChatPanel({ initialMessages, onMessagesChange }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const onMessagesChangeRef = useRef(onMessagesChange);
   onMessagesChangeRef.current = onMessagesChange;
-  const firstRenderRef = useRef(true);
 
-  useEffect(() => {
-    if (firstRenderRef.current) {
-      firstRenderRef.current = false;
-      return;
-    }
-    onMessagesChangeRef.current?.(messages);
-  }, [messages]);
+  function applyMessages(next: ChatMessage[]) {
+    setMessages(next);
+    onMessagesChangeRef.current?.(next);
+  }
 
   useEffect(() => {
     chatLogRef.current?.scrollTo({
@@ -80,25 +129,44 @@ export function ChatPanel({ initialMessages, onMessagesChange }: Props) {
       content: trimmedQuestion,
     };
     const history = buildHistory(messages);
-    setMessages((current) => [...current, userMessage]);
+    const afterUser = [...messages, userMessage];
+    applyMessages(afterUser);
     setQuestion("");
     setSending(true);
 
     try {
-      const result = await sendQuestion(trimmedQuestion, topK, history);
-      setMessages((current) => [
-        ...current,
+      const { chunks, filenames } = await resolveLocalContext(trimmedQuestion, topK);
+      const context: ContextChunkInput[] = chunks.map((chunk) => ({
+        filename: filenames.get(chunk.documentId) ?? null,
+        chunk_index: chunk.chunkIndex,
+        text: chunk.text,
+      }));
+
+      const result = await requestAnswer(trimmedQuestion, context, history);
+
+      const sources: ChatSource[] = result.used_context_indices
+        .map((idx) => chunks[idx - 1])
+        .filter((chunk): chunk is StoredChunk => Boolean(chunk))
+        .map((chunk) => ({
+          documentId: chunk.documentId,
+          filename: filenames.get(chunk.documentId) ?? null,
+          chunkIndex: chunk.chunkIndex,
+          text: chunk.text,
+        }));
+
+      applyMessages([
+        ...afterUser,
         {
           id: uniqueId(),
           role: "assistant",
           content: result.answer || "Aucune reponse.",
-          sources: result.sources,
+          sources,
           webSources: result.web_sources,
         },
       ]);
     } catch (caught) {
-      setMessages((current) => [
-        ...current,
+      applyMessages([
+        ...afterUser,
         { id: uniqueId(), role: "assistant", content: errorMessage(caught) },
       ]);
     } finally {
@@ -138,9 +206,11 @@ export function ChatPanel({ initialMessages, onMessagesChange }: Props) {
       </div>
 
       <div className="chat-log" ref={chatLogRef}>
-        {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
-        ))}
+        {messages.length === 0 && !sending ? (
+          <WelcomeScreen onPick={(prompt) => setQuestion(prompt)} />
+        ) : (
+          messages.map((message) => <MessageBubble key={message.id} message={message} />)
+        )}
         {sending ? (
           <div className="message assistant pending">
             <Bot size={18} aria-hidden="true" />
@@ -150,13 +220,22 @@ export function ChatPanel({ initialMessages, onMessagesChange }: Props) {
       </div>
 
       <form className="composer" onSubmit={handleSubmit}>
+        <button
+          type="button"
+          className="icon-button composer-attach"
+          aria-label="Joindre un document"
+          title="Joindre un document depuis Knowledge Base"
+          tabIndex={-1}
+        >
+          <Paperclip size={18} aria-hidden="true" />
+        </button>
         <textarea
           ref={textareaRef}
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
           onKeyDown={handleKeyDown}
           rows={1}
-          placeholder="Question sur les documents indexes..."
+          placeholder="Message Portfolio RAG (Local Context)..."
           required
         />
         <button
@@ -173,6 +252,61 @@ export function ChatPanel({ initialMessages, onMessagesChange }: Props) {
         </button>
       </form>
     </section>
+  );
+}
+
+function WelcomeScreen({ onPick }: { onPick: (prompt: string) => void }) {
+  return (
+    <div className="welcome-screen">
+      <article className="welcome-hero">
+        <div className="welcome-hero-icon">
+          <ShieldCheck size={22} aria-hidden="true" />
+        </div>
+        <div>
+          <h3>Privacy Confirmed</h3>
+          <p>
+            Tes conversations restent locales. Aucun telemetry, aucune fuite de contexte
+            vers un service externe.
+          </p>
+        </div>
+      </article>
+
+      <div className="welcome-suggestions" aria-label="Suggestions">
+        {SUGGESTIONS.map(({ icon: Icon, title, prompt }) => (
+          <button
+            key={title}
+            type="button"
+            className="suggestion-card"
+            onClick={() => onPick(prompt)}
+          >
+            <span className="suggestion-icon">
+              <Icon size={16} aria-hidden="true" />
+            </span>
+            <span className="suggestion-title">{title}</span>
+            <span className="suggestion-prompt">{prompt}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="welcome-info">
+        <article className="info-card">
+          <p className="info-eyebrow">
+            <Database size={12} aria-hidden="true" />
+            Indexed Knowledge
+          </p>
+          <h4>Recherche augmentee locale</h4>
+          <p>
+            Chaque question est ancree dans tes documents indexes. Les sources citees
+            apparaissent sous chaque reponse.
+          </p>
+        </article>
+        <article className="info-card info-card-secondary">
+          <WifiOff size={20} aria-hidden="true" />
+          <h4>Air-Gapped Ready</h4>
+          <p>Fonctionne sans connexion active vers un service externe.</p>
+        </article>
+      </div>
+    </div>
   );
 }
 
@@ -197,7 +331,7 @@ function InlineSources({ sources }: { sources: ChatSource[] }) {
     <div className="inline-sources">
       {sources.map((source, index) => (
         <SourceChip
-          key={`${source.document_id}-${source.chunk_index}-${index}`}
+          key={`${source.documentId}-${source.chunkIndex}-${index}`}
           source={source}
           index={index + 1}
         />
@@ -208,9 +342,7 @@ function InlineSources({ sources }: { sources: ChatSource[] }) {
 
 function SourceChip({ source, index }: { source: ChatSource; index: number }) {
   const label = source.filename || "Document";
-  const chunk = source.chunk_index ?? "-";
-  const score =
-    typeof source.score === "number" ? ` - score ${source.score.toFixed(3)}` : "";
+  const chunk = source.chunkIndex ?? "-";
 
   return (
     <span className="source-chip" tabIndex={0}>
@@ -220,7 +352,6 @@ function SourceChip({ source, index }: { source: ChatSource; index: number }) {
       <span className="source-popover" role="tooltip">
         <span className="source-popover-title">
           {label} - chunk {chunk}
-          {score}
         </span>
         <span className="source-popover-text">{source.text}</span>
       </span>

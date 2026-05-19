@@ -3,7 +3,12 @@ FROM node:20-bookworm-slim AS frontend-builder
 WORKDIR /frontend
 
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
+RUN npm config set fetch-retries 5 \
+    && npm config set fetch-retry-mintimeout 20000 \
+    && npm config set fetch-retry-maxtimeout 120000 \
+    && npm config set fetch-timeout 600000
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline --no-audit --no-fund
 
 COPY frontend/index.html frontend/tsconfig*.json frontend/vite.config.ts ./
 COPY frontend/src ./src

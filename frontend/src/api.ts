@@ -1,40 +1,53 @@
 import type {
+  AnswerResponse,
   ChatHistoryMessage,
-  ChatResponse,
-  IndexedDocument,
-  IndexResponse,
+  ContextChunkInput,
+  ExtractResponse,
 } from "./types";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
-export async function listDocuments(): Promise<IndexedDocument[]> {
-  return requestJson<IndexedDocument[]>("/api/rag/documents");
-}
-
-export async function uploadDocument(file: File): Promise<IndexResponse> {
+export async function extractFile(file: File): Promise<ExtractResponse> {
   const formData = new FormData();
   formData.append("file", file);
 
-  return requestJson<IndexResponse>("/api/rag/upload", {
+  return requestJson<ExtractResponse>("/api/extract", {
     method: "POST",
     body: formData,
   });
 }
 
-export async function deleteDocument(documentId: string): Promise<void> {
-  await requestJson(`/api/rag/documents/${documentId}`, { method: "DELETE" });
-}
-
-export async function sendQuestion(
-  message: string,
-  topK: number,
-  history: ChatHistoryMessage[],
-): Promise<ChatResponse> {
-  return requestJson<ChatResponse>("/api/rag/chat", {
+export async function embedTexts(texts: string[]): Promise<number[][]> {
+  if (!texts.length) return [];
+  const result = await requestJson<{ embeddings: number[][] }>("/api/embed", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, top_k: topK, history }),
+    body: JSON.stringify({ texts }),
   });
+  return result.embeddings;
+}
+
+export async function requestAnswer(
+  message: string,
+  context: ContextChunkInput[],
+  history: ChatHistoryMessage[],
+): Promise<AnswerResponse> {
+  return requestJson<AnswerResponse>("/api/answer", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message, context, history }),
+  });
+}
+
+export async function generateConversationTitle(
+  messages: ChatHistoryMessage[],
+): Promise<string> {
+  const result = await requestJson<{ title: string }>("/api/title", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messages }),
+  });
+  return result.title;
 }
 
 async function requestJson<T>(path: string, options: RequestInit = {}): Promise<T> {

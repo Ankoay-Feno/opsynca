@@ -1,38 +1,13 @@
-export type IndexedDocument = {
-  document_id: string;
-  filename: string | null;
-  content_type: string | null;
-  chunks: number;
-};
-
-export type IndexResponse = {
-  message: string;
-  document_id: string;
-  filename: string;
-  content_type: string | null;
-  extension: string;
-  chunks: number;
-  cleaned_content: string;
-  warnings: string[];
-};
-
-export type ChatSource = {
-  document_id: string | null;
-  filename: string | null;
-  chunk_index: number | null;
-  score: number | null;
-  text: string;
-};
-
 export type WebSource = {
   uri: string;
   title: string | null;
 };
 
-export type ChatResponse = {
-  answer: string;
-  sources: ChatSource[];
-  web_sources: WebSource[];
+export type ChatSource = {
+  documentId: string | null;
+  filename: string | null;
+  chunkIndex: number | null;
+  text: string;
 };
 
 export type ChatMessage = {
@@ -46,4 +21,24 @@ export type ChatMessage = {
 export type ChatHistoryMessage = {
   role: "user" | "assistant";
   content: string;
+};
+
+export type ContextChunkInput = {
+  filename: string | null;
+  chunk_index: number | null;
+  text: string;
+};
+
+export type ExtractResponse = {
+  filename: string;
+  content_type: string | null;
+  extension: string;
+  text: string;
+  warnings: string[];
+};
+
+export type AnswerResponse = {
+  answer: string;
+  used_context_indices: number[];
+  web_sources: WebSource[];
 };

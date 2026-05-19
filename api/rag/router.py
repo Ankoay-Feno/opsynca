@@ -2,95 +2,109 @@ from __future__ import annotations
 
 import re
 from typing import Any
-from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from api.config import Settings, get_settings
 from api.litellm_client import LiteLLMClient
 from api.rag.extract_file_contents import FileContentExtractor
-from api.rag.processing import chunk_text, clean_for_indexing
-from api.rag.qdrant_store import QdrantStore
 from api.rag.schemas import (
-    ChatRequest,
-    ChatResponse,
-    ChatSource,
+    AnswerRequest,
+    AnswerResponse,
+    ContextChunk,
+    EmbedRequest,
+    EmbedResponse,
+    ExtractResponse,
     HistoryMessage,
-    IndexResponse,
-    IndexedDocument,
+    TitleRequest,
+    TitleResponse,
     WebSource,
 )
 
 router = APIRouter(tags=["rag"])
 
 
-@router.post("/uploads", response_model=IndexResponse)
-@router.post("/api/rag/upload", response_model=IndexResponse)
-async def upload_and_index(
-    file: UploadFile = File(...),
-    settings: Settings = Depends(get_settings),
-) -> IndexResponse:
+@router.post("/api/extract", response_model=ExtractResponse)
+async def extract_file(file: UploadFile = File(...)) -> ExtractResponse:
     try:
         extracted = await FileContentExtractor.extract_file_contents(file)
-        cleaned_content = clean_for_indexing(extracted["text"])
-        chunks = chunk_text(cleaned_content)
-        if not chunks:
-            raise HTTPException(status_code=400, detail="Aucun contenu textuel exploitable a indexer.")
-
-        litellm = LiteLLMClient(settings)
-        embeddings = await litellm.embed([chunk.text for chunk in chunks])
-        if len(embeddings) != len(chunks):
-            raise HTTPException(status_code=502, detail="Le nombre d'embeddings ne correspond pas aux chunks.")
-        _validate_embedding_dimensions(embeddings, settings)
-
-        document_id = str(uuid4())
-        points = [_build_point(document_id, extracted, chunk, vector) for chunk, vector in zip(chunks, embeddings)]
-        await QdrantStore(settings).upsert_points(points)
-
-        return IndexResponse(
-            message="file indexed successfully",
-            document_id=document_id,
+        if not extracted["text"].strip():
+            raise HTTPException(status_code=400, detail="Aucun contenu textuel exploitable.")
+        return ExtractResponse(
             filename=extracted["filename"],
             content_type=extracted["content_type"],
             extension=extracted["extension"],
-            chunks=len(chunks),
-            cleaned_content=cleaned_content,
+            text=extracted["text"],
             warnings=extracted["warnings"],
         )
     finally:
         await file.close()
 
 
-@router.get("/api/rag/documents", response_model=list[IndexedDocument])
-async def list_documents(settings: Settings = Depends(get_settings)) -> list[dict[str, Any]]:
-    return await QdrantStore(settings).list_documents()
-
-
-@router.delete("/api/rag/documents/{document_id}")
-async def delete_document(document_id: str, settings: Settings = Depends(get_settings)) -> dict[str, str]:
-    await QdrantStore(settings).delete_document(document_id)
-    return {"message": "document deindexed successfully", "document_id": document_id}
-
-
-@router.post("/api/rag/chat", response_model=ChatResponse)
-async def rag_chat(payload: ChatRequest, settings: Settings = Depends(get_settings)) -> ChatResponse:
+@router.post("/api/embed", response_model=EmbedResponse)
+async def embed_texts(
+    payload: EmbedRequest,
+    settings: Settings = Depends(get_settings),
+) -> EmbedResponse:
     litellm = LiteLLMClient(settings)
-    question_vector = (await litellm.embed([payload.message]))[0]
-    _validate_embedding_dimensions([question_vector], settings)
-    hits = await QdrantStore(settings).search(question_vector, limit=payload.top_k)
-    sources = [_source_from_hit(hit) for hit in hits]
+    vectors = await litellm.embed(payload.texts)
+    if len(vectors) != len(payload.texts):
+        raise HTTPException(
+            status_code=502,
+            detail="Le nombre d'embeddings ne correspond pas aux textes envoyes.",
+        )
+    return EmbedResponse(embeddings=vectors)
 
+
+@router.post("/api/answer", response_model=AnswerResponse)
+async def answer(
+    payload: AnswerRequest,
+    settings: Settings = Depends(get_settings),
+) -> AnswerResponse:
+    litellm = LiteLLMClient(settings)
     tools = [{"googleSearch": {}}] if _supports_google_search(settings.litellm_model) else None
     response = await litellm.chat(
-        _build_messages(payload.message, sources, payload.history),
+        _build_messages(payload.message, payload.context, payload.history),
         tools=tools,
     )
     message = response["choices"][0]["message"]
     raw = message.get("content", "") or ""
-    answer, used_indices = _parse_answer(raw, len(sources))
-    cited_sources = [sources[i - 1] for i in used_indices]
-    web_sources = _extract_web_sources(response)
-    return ChatResponse(answer=answer, sources=cited_sources, web_sources=web_sources)
+    text, used_indices = _parse_answer(raw, len(payload.context))
+    return AnswerResponse(
+        answer=text,
+        used_context_indices=used_indices,
+        web_sources=_extract_web_sources(response),
+    )
+
+
+@router.post("/api/title", response_model=TitleResponse)
+async def generate_title(
+    payload: TitleRequest,
+    settings: Settings = Depends(get_settings),
+) -> TitleResponse:
+    litellm = LiteLLMClient(settings)
+    transcript = "\n".join(
+        f"{msg.role}: {msg.content.strip()}" for msg in payload.messages[:12] if msg.content.strip()
+    )
+    if not transcript:
+        raise HTTPException(status_code=400, detail="Aucun contenu exploitable pour generer un titre.")
+
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "Tu generes un titre court (3 a 6 mots, en francais) qui resume cette conversation. "
+                "Reponds avec UNIQUEMENT le titre, sans guillemets, sans ponctuation finale, sans prefixe."
+            ),
+        },
+        {"role": "user", "content": f"Conversation:\n{transcript}"},
+    ]
+    response = await litellm.chat(messages)
+    raw = response["choices"][0]["message"].get("content", "") or ""
+    title = raw.strip().strip("\"'").rstrip(".!?").strip()
+    if not title:
+        raise HTTPException(status_code=502, detail="Le modele n'a pas renvoye de titre.")
+    return TitleResponse(title=title[:80])
 
 
 def _supports_google_search(model: str) -> bool:
@@ -178,71 +192,35 @@ def _find_grounding_metadata(response: dict[str, Any]) -> dict[str, Any] | None:
     return None
 
 
-def _build_point(document_id: str, extracted: dict[str, Any], chunk: Any, vector: list[float]) -> dict[str, Any]:
-    return {
-        "id": str(uuid4()),
-        "vector": vector,
-        "payload": {
-            "document_id": document_id,
-            "filename": extracted["filename"],
-            "content_type": extracted["content_type"],
-            "extension": extracted["extension"],
-            "chunk_index": chunk.index,
-            "text": chunk.text,
-        },
-    }
-
-
-def _validate_embedding_dimensions(embeddings: list[list[float]], settings: Settings) -> None:
-    dimensions = {len(embedding) for embedding in embeddings}
-    if dimensions == {settings.embedding_dimension}:
-        return
-
-    raise HTTPException(
-        status_code=502,
-        detail={
-            "message": "Embedding dimension mismatch.",
-            "embedding_model": settings.embedding_model,
-            "expected_dimension": settings.embedding_dimension,
-            "actual_dimensions": sorted(dimensions),
-            "fix": "Update EMBEDDING_DIMENSION to match the embedding model output, or choose a matching embedding model.",
-        },
-    )
-
-
-def _source_from_hit(hit: dict[str, Any]) -> ChatSource:
-    payload = hit.get("payload", {})
-    return ChatSource(
-        document_id=payload.get("document_id"),
-        filename=payload.get("filename"),
-        chunk_index=payload.get("chunk_index"),
-        score=hit.get("score"),
-        text=payload.get("text", ""),
-    )
-
-
 def _build_messages(
     question: str,
-    sources: list[ChatSource],
+    context: list[ContextChunk],
     history: list[HistoryMessage],
 ) -> list[dict[str, str]]:
     base_system = (
-        "Tu es un assistant utile. Tu peux utiliser la recherche web Google si la question "
-        "necessite des informations recentes ou hors de tes connaissances. Cite les faits "
-        "trouves en ligne dans ta reponse."
+        "Tu es un assistant utile avec acces a l'outil de recherche web Google. "
+        "REGLE IMPERATIVE: tu DOIS appeler la recherche web Google avant de repondre "
+        "des qu'une question porte sur:\n"
+        "- une actualite, un evenement recent, une date posterieure a ta date de connaissance,\n"
+        "- une personne, entreprise, produit ou prix susceptibles d'avoir change,\n"
+        "- un fait verifiable que tu ne connais pas avec certitude,\n"
+        "- une question commencant par 'aujourd'hui', 'en ce moment', 'dernier/derniere', "
+        "'actuel', 'nouveau', ou contenant une annee >= 2024.\n\n"
+        "Si tu hesites, recherche. Mieux vaut une recherche inutile qu'une reponse perimee. "
+        "Cite explicitement les sources web utilisees dans le corps de ta reponse."
     )
     history_messages = [{"role": entry.role, "content": entry.content} for entry in history]
 
-    if not sources:
+    if not context:
         return [
             {"role": "system", "content": base_system},
             *history_messages,
             {"role": "user", "content": question},
         ]
 
-    context = "\n\n".join(
-        f"[{index}] fichier={source.filename} chunk={source.chunk_index}\n{source.text}"
-        for index, source in enumerate(sources, start=1)
+    context_block = "\n\n".join(
+        f"[{index}] fichier={chunk.filename or 'inconnu'} chunk={chunk.chunk_index}\n{chunk.text}"
+        for index, chunk in enumerate(context, start=1)
     )
     system_prompt = (
         f"{base_system}\n\n"
@@ -259,6 +237,6 @@ def _build_messages(
         *history_messages,
         {
             "role": "user",
-            "content": f"Contexte indexe (optionnel):\n{context}\n\nQuestion:\n{question}",
+            "content": f"Contexte indexe (optionnel):\n{context_block}\n\nQuestion:\n{question}",
         },
     ]

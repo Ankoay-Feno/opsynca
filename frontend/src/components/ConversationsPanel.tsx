@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, MessageSquarePlus, Pencil, Trash2, X } from "lucide-react";
+import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 
 import type { ConversationMeta } from "../storage";
 
@@ -22,13 +22,20 @@ export function ConversationsPanel({
 }: Props) {
   return (
     <div className="conversations">
-      <button className="primary-button new-conversation" type="button" onClick={onNew}>
-        <MessageSquarePlus size={18} aria-hidden="true" />
-        Nouvelle conversation
-      </button>
-      <p className="sidebar-section-label">Local History</p>
+      <div className="history-header">
+        <p className="sidebar-section-label">Local History</p>
+        <button
+          type="button"
+          className="icon-button ghost history-new"
+          onClick={onNew}
+          title="Nouvelle conversation"
+          aria-label="Nouvelle conversation"
+        >
+          <Plus size={16} aria-hidden="true" />
+        </button>
+      </div>
       {conversations.length === 0 ? (
-        <div className="empty-state">Aucune conversation.</div>
+        <div className="empty-state">Commence a discuter pour creer une conversation.</div>
       ) : (
         <ul className="conversation-list">
           {conversations.map((conversation) => (

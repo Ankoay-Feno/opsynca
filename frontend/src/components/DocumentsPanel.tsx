@@ -2,12 +2,21 @@ import { FormEvent, useState } from "react";
 import { FileText, Loader2, RefreshCcw, Trash2, UploadCloud } from "lucide-react";
 
 import { StatusLine } from "./StatusLine";
-import { deleteDocument, uploadDocument } from "../api";
-import type { IndexedDocument } from "../types";
-import { errorMessage } from "../utils";
+import { embedTexts, extractFile } from "../api";
+import { chunkText } from "../chunking";
+import {
+  addChunks,
+  deleteDocument,
+  listChunksByDocument,
+  saveDocument,
+  type StoredChunk,
+  type StoredDocument,
+} from "../storage";
+import { getVectorIndex } from "../vectorSearch";
+import { errorMessage, uniqueId } from "../utils";
 
 type Props = {
-  documents: IndexedDocument[];
+  documents: StoredDocument[];
   loading: boolean;
   error: string | null;
   onRefresh: () => Promise<void> | void;
@@ -35,11 +44,49 @@ export function DocumentsPanel({
     }
 
     setUploading(true);
-    setUploadStatus("Indexation en cours...");
+    setUploadStatus("Extraction du texte...");
     try {
-      const result = await uploadDocument(selectedFile);
-      const warnings = result.warnings.length ? ` Warnings: ${result.warnings.join("; ")}` : "";
-      setUploadStatus(`${result.filename} indexe. ${result.chunks} chunks.${warnings}`);
+      const extracted = await extractFile(selectedFile);
+
+      setUploadStatus("Decoupage en chunks...");
+      const textChunks = chunkText(extracted.text);
+      if (textChunks.length === 0) {
+        throw new Error("Aucun contenu textuel exploitable a indexer.");
+      }
+
+      setUploadStatus(`Embedding ${textChunks.length} chunks...`);
+      const vectors = await embedTexts(textChunks.map((chunk) => chunk.text));
+      if (vectors.length !== textChunks.length) {
+        throw new Error("Nombre d'embeddings incoherent avec les chunks.");
+      }
+
+      const documentId = uniqueId();
+      const storedChunks: StoredChunk[] = textChunks.map((chunk, i) => ({
+        id: uniqueId(),
+        documentId,
+        chunkIndex: chunk.index,
+        text: chunk.text,
+        vector: vectors[i],
+      }));
+
+      const document: StoredDocument = {
+        documentId,
+        filename: extracted.filename,
+        contentType: extracted.content_type,
+        extension: extracted.extension,
+        chunksCount: storedChunks.length,
+        createdAt: Date.now(),
+      };
+      await saveDocument(document);
+      await addChunks(storedChunks);
+      getVectorIndex().addChunks(storedChunks);
+
+      const warnings = extracted.warnings.length
+        ? ` Warnings: ${extracted.warnings.join("; ")}`
+        : "";
+      setUploadStatus(
+        `${extracted.filename} indexe. ${storedChunks.length} chunks.${warnings}`,
+      );
       setSelectedFile(null);
       form.reset();
       await onDocumentsChanged();
@@ -53,7 +100,11 @@ export function DocumentsPanel({
   async function handleDelete(documentId: string) {
     onError(null);
     try {
+      const chunksToRemove = await listChunksByDocument(documentId);
       await deleteDocument(documentId);
+      if (chunksToRemove.length) {
+        getVectorIndex().removeChunks(chunksToRemove);
+      }
       await onDocumentsChanged();
     } catch (caught) {
       onError(errorMessage(caught));
@@ -113,7 +164,7 @@ function DocumentList({
   loading,
   onDelete,
 }: {
-  documents: IndexedDocument[];
+  documents: StoredDocument[];
   loading: boolean;
   onDelete: (documentId: string) => void;
 }) {
@@ -133,18 +184,18 @@ function DocumentList({
   return (
     <div className="document-list">
       {documents.map((document) => (
-        <article className="document-card" key={document.document_id}>
+        <article className="document-card" key={document.documentId}>
           <FileText size={18} aria-hidden="true" />
           <div>
-            <h3>{document.filename || document.document_id}</h3>
-            <p>{document.chunks} chunks</p>
+            <h3>{document.filename || document.documentId}</h3>
+            <p>{document.chunksCount} chunks</p>
           </div>
           <button
             className="icon-button danger"
             type="button"
             title="Desindexer"
-            aria-label={`Desindexer ${document.filename || document.document_id}`}
-            onClick={() => onDelete(document.document_id)}
+            aria-label={`Desindexer ${document.filename || document.documentId}`}
+            onClick={() => onDelete(document.documentId)}
           >
             <Trash2 size={17} aria-hidden="true" />
           </button>

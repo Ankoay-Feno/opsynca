@@ -9,7 +9,7 @@ from api.rag.router import router as rag_router
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 
-app = FastAPI(title="Portfolio RAG API")
+app = FastAPI(title="OPSYNCA AI API")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.include_router(rag_router)
 
