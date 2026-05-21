@@ -67,7 +67,7 @@ resource "azurerm_container_app" "this" {
       }
 
       dynamic "env" {
-        for_each = var.secret_environment_variables
+        for_each = nonsensitive(var.secret_environment_variables)
 
         content {
           name        = env.key
