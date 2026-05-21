@@ -135,6 +135,18 @@ export const projects: Project[] = [
       "Artefact téléchargeable par release",
     ],
   },
+  {
+    title: "Portfolio Cloud/DevOps sur Azure",
+    description:
+      "API RAG FastAPI proxiant LiteLLM avec solution defallback (Gemini, Mistral, Groq), déployée sur Azure via Terraform — Container Apps pour l'API, Static Web Apps pour le front, CI/CD GitHub Actions.",
+    stack: ["FastAPI", "LiteLLM", "Azure", "Terraform", "GitHub Actions"],
+    highlights: [
+      "API stateless, stockage RAG côté client",
+      "IaC Terraform modulaire multi-app",
+      "Auth GitHub → Azure via OIDC Federation",
+    ],
+    repo: "https://github.com/Ankoay-Feno/portfolio",
+  },
 ];
 
 export const skillGroups: SkillGroup[] = [
