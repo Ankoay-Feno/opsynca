@@ -29,6 +29,11 @@ output "frontend_build_env_vars" {
   }
 }
 
+output "api_cors_allow_origins" {
+  description = "Allowed CORS origins configured on each API Container App."
+  value       = local.api_cors_allow_origins
+}
+
 output "static_web_app_deployment_tokens" {
   description = "Deployment tokens for CI. Store them in GitHub secrets, then treat this output as sensitive."
   value = {

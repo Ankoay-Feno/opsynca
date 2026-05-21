@@ -50,6 +50,18 @@ locals {
     }
   }
 
+  api_cors_allow_origins = {
+    for app_key, app in local.apps :
+    app_key => distinct([
+      for origin in concat(
+        ["https://${module.static_web_apps[app_key].default_host_name}"],
+        app.api.extra_cors_origins
+      ) :
+      trimsuffix(trimspace(origin), "/")
+      if trimspace(origin) != ""
+    ])
+  }
+
   common_tags = merge(var.tags, {
     project = local.project_suffix
   })
@@ -113,10 +125,7 @@ module "api_apps" {
   scale_rule_name  = each.value.scale_rule_name
 
   environment_variables = merge(each.value.backend_env_vars, each.value.api.env_vars, {
-    CORS_ALLOW_ORIGINS = join(",", concat(
-      ["https://${module.static_web_apps[each.key].default_host_name}"],
-      each.value.api.extra_cors_origins
-    ))
+    CORS_ALLOW_ORIGINS = join(",", local.api_cors_allow_origins[each.key])
   })
 
   secret_environment_variables = local.backend_secret_names

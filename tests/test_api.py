@@ -1,5 +1,41 @@
 from __future__ import annotations
 
+from starlette.datastructures import Headers
+from starlette.middleware.cors import CORSMiddleware
+
+
+def test_parse_origins_normalizes_and_deduplicates_values():
+    from api.main import _parse_origins
+
+    assert _parse_origins(" https://opsynca.dev/ , https://opsynca.dev ,, * ") == [
+        "https://opsynca.dev",
+        "*",
+    ]
+
+
+def test_cors_preflight_allows_opsynca_custom_domain():
+    from api.main import _parse_origins
+
+    cors = CORSMiddleware(
+        lambda scope, receive, send: None,
+        allow_origins=_parse_origins(
+            "https://frontend.example.test/,https://opsynca.dev/"
+        ),
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    response = cors.preflight_response(
+        Headers({
+            "origin": "https://opsynca.dev",
+            "access-control-request-method": "POST",
+            "access-control-request-headers": "content-type",
+        })
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.headers["access-control-allow-origin"] == "https://opsynca.dev"
+
 
 def test_embed_endpoint_forwards_to_litellm(client, fake_litellm):
     response = client.post("/api/embed", json={"texts": ["hello", "world"]})
