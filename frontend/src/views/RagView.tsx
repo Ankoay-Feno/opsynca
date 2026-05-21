@@ -40,6 +40,7 @@ export function RagView({ onDocumentCountChange }: Props) {
   const [currentMessages, setCurrentMessages] = useState<ChatMessage[]>([]);
   const [sessionKey, setSessionKey] = useState(0);
   const [tab, setTab] = useState<SidebarTab>("chats");
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const storageIdRef = useRef<string>(DRAFT_KEY);
   const titleInFlightRef = useRef<Set<string>>(new Set());
 
@@ -72,7 +73,17 @@ export function RagView({ onDocumentCountChange }: Props) {
     })();
   }, []);
 
+  useEffect(() => {
+    if (!drawerOpen) return;
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setDrawerOpen(false);
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [drawerOpen]);
+
   const selectConversation = useCallback(async (id: string) => {
+    setDrawerOpen(false);
     if (id === DRAFT_KEY) {
       storageIdRef.current = DRAFT_KEY;
       setCurrentId(DRAFT_KEY);
@@ -89,6 +100,7 @@ export function RagView({ onDocumentCountChange }: Props) {
   }, []);
 
   const handleNewConversation = useCallback(() => {
+    setDrawerOpen(false);
     storageIdRef.current = DRAFT_KEY;
     setCurrentId(DRAFT_KEY);
     setCurrentMessages([]);
@@ -218,7 +230,15 @@ export function RagView({ onDocumentCountChange }: Props) {
 
   return (
     <div className="workspace">
-      <aside className="sidebar" aria-label="Navigation laterale">
+      <div
+        className={`drawer-backdrop ${drawerOpen ? "open" : ""}`}
+        onClick={() => setDrawerOpen(false)}
+        aria-hidden="true"
+      />
+      <aside
+        className={`sidebar ${drawerOpen ? "drawer-open" : ""}`}
+        aria-label="Navigation laterale"
+      >
         <div className="brand-block">
           <div className="brand-logo">
             <ShieldCheck size={20} aria-hidden="true" />
@@ -255,6 +275,7 @@ export function RagView({ onDocumentCountChange }: Props) {
         key={sessionKey}
         initialMessages={currentMessages}
         onMessagesChange={handleMessagesChange}
+        onMenuClick={() => setDrawerOpen((open) => !open)}
       />
     </div>
   );

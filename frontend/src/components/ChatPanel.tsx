@@ -1,15 +1,15 @@
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import {
   Bot,
-  Database,
   ExternalLink,
   Globe,
   Loader2,
+  Menu,
   Paperclip,
   Send,
   ShieldCheck,
+  Sparkles,
   User,
-  WifiOff,
 } from "lucide-react";
 
 import { embedTexts, fetchAnswer } from "../api";
@@ -71,9 +71,10 @@ async function resolveLocalContext(
 type Props = {
   initialMessages?: ChatMessage[];
   onMessagesChange?: (messages: ChatMessage[]) => void;
+  onMenuClick?: () => void;
 };
 
-export function ChatPanel({ initialMessages, onMessagesChange }: Props) {
+export function ChatPanel({ initialMessages, onMessagesChange, onMenuClick }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>(() => initialMessages ?? []);
   const [question, setQuestion] = useState("");
   const [topK, setTopK] = useState(5);
@@ -173,6 +174,16 @@ export function ChatPanel({ initialMessages, onMessagesChange }: Props) {
   return (
     <section className="chat-column" aria-label="Chat RAG">
       <div className="section-heading chat-heading">
+        {onMenuClick ? (
+          <button
+            type="button"
+            className="icon-button mobile-menu-button"
+            aria-label="Ouvrir le menu"
+            onClick={onMenuClick}
+          >
+            <Menu size={18} aria-hidden="true" />
+          </button>
+        ) : null}
         <div>
           <p className="eyebrow">Conversation</p>
           <h2>Chat</h2>
@@ -191,7 +202,12 @@ export function ChatPanel({ initialMessages, onMessagesChange }: Props) {
 
       <div className="chat-log" ref={chatLogRef}>
         {messages.length === 0 && !sending ? (
-          <WelcomeScreen />
+          <WelcomeScreen
+            onSuggestion={(prompt) => {
+              setQuestion(prompt);
+              textareaRef.current?.focus();
+            }}
+          />
         ) : (
           messages.map((message) => <MessageBubble key={message.id} message={message} />)
         )}
@@ -239,7 +255,26 @@ export function ChatPanel({ initialMessages, onMessagesChange }: Props) {
   );
 }
 
-function WelcomeScreen() {
+const WELCOME_SUGGESTIONS = [
+  {
+    title: "Résumé",
+    prompt: "Résume mes documents indexés en quelques points clés.",
+  },
+  {
+    title: "Concepts clés",
+    prompt: "Quels sont les concepts clés présents dans mes documents ?",
+  },
+  {
+    title: "Comparaison",
+    prompt: "Compare les idées principales entre mes différentes sources.",
+  },
+  {
+    title: "Exemple concret",
+    prompt: "Donne-moi un exemple concret tiré de mes documents.",
+  },
+];
+
+function WelcomeScreen({ onSuggestion }: { onSuggestion: (prompt: string) => void }) {
   return (
     <div className="welcome-screen">
       <article className="welcome-hero">
@@ -247,31 +282,29 @@ function WelcomeScreen() {
           <ShieldCheck size={22} aria-hidden="true" />
         </div>
         <div>
-          <h3>Privacy Confirmed</h3>
+          <h3>Bienvenue sur OPSYNCA AI</h3>
           <p>
-            Tes conversations restent locales. Aucun telemetry, aucune fuite de contexte
-            vers un service externe.
+            Tes documents et conversations restent en local. Pose une question ou
+            choisis une suggestion ci-dessous pour commencer.
           </p>
         </div>
       </article>
 
-      <div className="welcome-info">
-        <article className="info-card">
-          <p className="info-eyebrow">
-            <Database size={12} aria-hidden="true" />
-            Indexed Knowledge
-          </p>
-          <h4>Recherche augmentee locale</h4>
-          <p>
-            Chaque question est ancree dans tes documents indexes. Les sources citees
-            apparaissent sous chaque reponse.
-          </p>
-        </article>
-        <article className="info-card info-card-secondary">
-          <WifiOff size={20} aria-hidden="true" />
-          <h4>Air-Gapped Ready</h4>
-          <p>Fonctionne sans connexion active vers un service externe.</p>
-        </article>
+      <div className="welcome-suggestions">
+        {WELCOME_SUGGESTIONS.map((suggestion) => (
+          <button
+            key={suggestion.title}
+            type="button"
+            className="suggestion-card"
+            onClick={() => onSuggestion(suggestion.prompt)}
+          >
+            <span className="suggestion-icon">
+              <Sparkles size={12} aria-hidden="true" />
+              {suggestion.title}
+            </span>
+            <span className="suggestion-prompt">{suggestion.prompt}</span>
+          </button>
+        ))}
       </div>
     </div>
   );
