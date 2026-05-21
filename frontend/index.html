@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Portfolio RAG</title>
+    <title>OPSYNCA AI</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -12,6 +12,22 @@
     />
   </head>
   <body>
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("portfolio-rag.theme");
+          var pref = stored === "light" || stored === "dark" ? stored : "system";
+          var theme = pref === "system"
+            ? (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark")
+            : pref;
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch (e) {
+          document.documentElement.setAttribute("data-theme", "dark");
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

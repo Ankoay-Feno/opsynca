@@ -68,19 +68,30 @@ async def answer(
         response = await litellm.chat(messages, tools=tools)
     except HTTPException:
         # Gemini-native googleSearch tool est incompatible avec les fallbacks
-        # Mistral/HuggingFace/Groq. Si l'appel echoue avec tools, on retente sans
-        # pour laisser la chaine de fallback repondre (sans recherche web).
+        # Mistral/HuggingFace/Groq. Si l'appel echoue avec tools, on retente sans.
         if tools is None:
             raise
         response = await litellm.chat(messages, tools=None)
-    message = response["choices"][0]["message"]
-    raw = message.get("content", "") or ""
-    text, used_indices = _parse_answer(raw, len(payload.context))
+
+    raw = _extract_message_content(response)
+    final_text, used_indices = _parse_answer(raw, len(payload.context))
     return AnswerResponse(
-        answer=text,
+        answer=final_text,
         used_context_indices=used_indices,
         web_sources=_extract_web_sources(response),
     )
+
+
+def _extract_message_content(response: dict[str, Any]) -> str:
+    for choice in response.get("choices") or []:
+        if not isinstance(choice, dict):
+            continue
+        message = choice.get("message") if isinstance(choice.get("message"), dict) else None
+        if message:
+            content = message.get("content")
+            if isinstance(content, str):
+                return content
+    return ""
 
 
 @router.post("/api/title", response_model=TitleResponse)

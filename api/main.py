@@ -1,19 +1,28 @@
-from pathlib import Path
+import os
 
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 
 from api.rag.router import router as rag_router
 
-BASE_DIR = Path(__file__).resolve().parent
-STATIC_DIR = BASE_DIR / "static"
+_DEFAULT_ORIGINS = "*"
+
+
+def _parse_origins(raw: str) -> list[str]:
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
 
 app = FastAPI(title="OPSYNCA AI API")
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_parse_origins(os.getenv("CORS_ALLOW_ORIGINS", _DEFAULT_ORIGINS)),
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.include_router(rag_router)
 
 
 @app.get("/")
-async def rag_app() -> FileResponse:
-    return FileResponse(STATIC_DIR / "index.html")
+async def health() -> dict[str, str]:
+    return {"status": "ok"}

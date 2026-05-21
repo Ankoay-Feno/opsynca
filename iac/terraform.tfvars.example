@@ -1,0 +1,59 @@
+subscription_id = "00000000-0000-0000-0000-000000000000"
+project         = "portfolio-student"
+location        = "westeurope"
+
+# Azure for Students: 100 USD / 12 months ~= 8.33 USD/month.
+monthly_budget_amount = 8
+budget_start_date     = "2026-05-01T00:00:00Z"
+budget_end_date       = "2027-05-01T00:00:00Z"
+budget_contact_emails = ["you@example.com"]
+
+# GEMINI_API_KEY est lue depuis env_variables/backend/backend_env.json (fichier gitignore).
+
+# Optional backend provider secrets. Prefer TF_VAR_backend_secret_env_vars.
+# backend_secret_env_vars = {
+#   GROQ_API_KEY        = "..."
+#   HUGGINGFACE_API_KEY = "..."
+#   MISTRAL_API_KEY     = "..."
+#   EVENLAKE_API_KEY    = "..."
+# }
+
+# Leave null if your image is public. If private, set TF_VAR_registry_password.
+registry = null
+
+# registry = {
+#   server   = "ghcr.io"
+#   username = "<github-username>"
+# }
+
+container_apps_logs_destination = "none"
+
+apps = {
+  portfolio = {
+    backend_env_file  = "backend_env.json"
+    frontend_env_file = "frontend_env.json"
+
+    api = {
+      image = "ghcr.io/<owner>/<repo>/portfolio-api:latest"
+
+      min_replicas = 0
+      max_replicas = 1
+      cpu          = 0.5
+      memory       = "1.0Gi"
+
+      # Add local dev origins only while testing.
+      extra_cors_origins = [
+        "http://localhost:5173"
+      ]
+    }
+  }
+
+  # app2 = {
+  #   backend_env_file  = "app2_backend_env.json"
+  #   frontend_env_file = "app2_frontend_env.json"
+  #
+  #   api = {
+  #     image = "ghcr.io/<owner>/<repo>/second-api:latest"
+  #   }
+  # }
+}

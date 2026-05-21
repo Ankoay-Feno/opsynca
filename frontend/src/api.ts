@@ -27,15 +27,17 @@ export async function embedTexts(texts: string[]): Promise<number[][]> {
   return result.embeddings;
 }
 
-export async function requestAnswer(
+export async function fetchAnswer(
   message: string,
   context: ContextChunkInput[],
   history: ChatHistoryMessage[],
+  signal?: AbortSignal,
 ): Promise<AnswerResponse> {
   return requestJson<AnswerResponse>("/api/answer", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message, context, history }),
+    signal,
   });
 }
 

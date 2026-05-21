@@ -1,0 +1,10 @@
+.terraform/
+terraform.tfstate
+terraform.tfstate.*
+*.tfplan
+*.tfvars
+!terraform.tfvars.example
+env_variables/**/*.local.json
+env_variables/**/*.secret.json
+env_variables/backend/backend_env.json
+env_variables/frontend/frontend_env.json

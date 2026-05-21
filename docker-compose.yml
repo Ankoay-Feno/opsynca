@@ -15,3 +15,14 @@ services:
     command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: portfolio-frontend:local
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "8080:80"

@@ -6,15 +6,13 @@ import {
   Globe,
   Loader2,
   Paperclip,
-  Search,
   Send,
   ShieldCheck,
-  Sparkles,
   User,
   WifiOff,
 } from "lucide-react";
 
-import { embedTexts, requestAnswer } from "../api";
+import { embedTexts, fetchAnswer } from "../api";
 import { getChunk, getDocument, type StoredChunk } from "../storage";
 import type {
   ChatHistoryMessage,
@@ -25,19 +23,6 @@ import type {
 } from "../types";
 import { clampNumber, errorMessage, uniqueId } from "../utils";
 import { getVectorIndex } from "../vectorSearch";
-
-const SUGGESTIONS: { icon: typeof Sparkles; title: string; prompt: string }[] = [
-  {
-    icon: Sparkles,
-    title: "Synthese rapide",
-    prompt: "Resume-moi les points cles des documents indexes.",
-  },
-  {
-    icon: Search,
-    title: "Recherche ciblee",
-    prompt: "Trouve les passages qui parlent de securite et de conformite.",
-  },
-];
 
 const HISTORY_CHAR_BUDGET = 8000;
 
@@ -134,6 +119,7 @@ export function ChatPanel({ initialMessages, onMessagesChange }: Props) {
     setQuestion("");
     setSending(true);
 
+    const assistantId = uniqueId();
     try {
       const { chunks, filenames } = await resolveLocalContext(trimmedQuestion, topK);
       const context: ContextChunkInput[] = chunks.map((chunk) => ({
@@ -142,8 +128,7 @@ export function ChatPanel({ initialMessages, onMessagesChange }: Props) {
         text: chunk.text,
       }));
 
-      const result = await requestAnswer(trimmedQuestion, context, history);
-
+      const result = await fetchAnswer(trimmedQuestion, context, history);
       const sources: ChatSource[] = result.used_context_indices
         .map((idx) => chunks[idx - 1])
         .filter((chunk): chunk is StoredChunk => Boolean(chunk))
@@ -153,11 +138,10 @@ export function ChatPanel({ initialMessages, onMessagesChange }: Props) {
           chunkIndex: chunk.chunkIndex,
           text: chunk.text,
         }));
-
       applyMessages([
         ...afterUser,
         {
-          id: uniqueId(),
+          id: assistantId,
           role: "assistant",
           content: result.answer || "Aucune reponse.",
           sources,
@@ -167,7 +151,7 @@ export function ChatPanel({ initialMessages, onMessagesChange }: Props) {
     } catch (caught) {
       applyMessages([
         ...afterUser,
-        { id: uniqueId(), role: "assistant", content: errorMessage(caught) },
+        { id: assistantId, role: "assistant", content: errorMessage(caught) },
       ]);
     } finally {
       setSending(false);
@@ -207,7 +191,7 @@ export function ChatPanel({ initialMessages, onMessagesChange }: Props) {
 
       <div className="chat-log" ref={chatLogRef}>
         {messages.length === 0 && !sending ? (
-          <WelcomeScreen onPick={(prompt) => setQuestion(prompt)} />
+          <WelcomeScreen />
         ) : (
           messages.map((message) => <MessageBubble key={message.id} message={message} />)
         )}
@@ -235,7 +219,7 @@ export function ChatPanel({ initialMessages, onMessagesChange }: Props) {
           onChange={(event) => setQuestion(event.target.value)}
           onKeyDown={handleKeyDown}
           rows={1}
-          placeholder="Message Portfolio RAG (Local Context)..."
+          placeholder="Message OPSYNCA AI (Local Context)..."
           required
         />
         <button
@@ -255,7 +239,7 @@ export function ChatPanel({ initialMessages, onMessagesChange }: Props) {
   );
 }
 
-function WelcomeScreen({ onPick }: { onPick: (prompt: string) => void }) {
+function WelcomeScreen() {
   return (
     <div className="welcome-screen">
       <article className="welcome-hero">
@@ -270,23 +254,6 @@ function WelcomeScreen({ onPick }: { onPick: (prompt: string) => void }) {
           </p>
         </div>
       </article>
-
-      <div className="welcome-suggestions" aria-label="Suggestions">
-        {SUGGESTIONS.map(({ icon: Icon, title, prompt }) => (
-          <button
-            key={title}
-            type="button"
-            className="suggestion-card"
-            onClick={() => onPick(prompt)}
-          >
-            <span className="suggestion-icon">
-              <Icon size={16} aria-hidden="true" />
-            </span>
-            <span className="suggestion-title">{title}</span>
-            <span className="suggestion-prompt">{prompt}</span>
-          </button>
-        ))}
-      </div>
 
       <div className="welcome-info">
         <article className="info-card">

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Database, MessagesSquare } from "lucide-react";
 
+import { ThemeToggle } from "../components/ThemeToggle";
 import { RagView } from "../views/RagView";
 
 export function RagApp() {
@@ -11,7 +12,7 @@ export function RagApp() {
       <header className="topbar">
         <div>
           <p className="eyebrow">Local Workspace</p>
-          <h1>Portfolio RAG</h1>
+          <h1>OPSYNCA AI</h1>
         </div>
         <nav className="tab-bar" aria-label="Vues">
           <span className="tab active">
@@ -25,6 +26,7 @@ export function RagApp() {
             {documentCount} documents
           </span>
           <span className="local-mode-badge">Local Mode</span>
+          <ThemeToggle />
         </div>
       </header>
 

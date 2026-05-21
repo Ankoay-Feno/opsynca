@@ -18,11 +18,7 @@ def test_embed_endpoint_rejects_empty_texts(client, fake_litellm):
 def test_answer_endpoint_uses_context_and_returns_indices(client, fake_litellm):
     fake_litellm._chat_payload = {
         "choices": [
-            {
-                "message": {
-                    "content": "Voici la reponse.\nSOURCES_UTILISEES: 1",
-                }
-            }
+            {"message": {"content": "Voici la reponse.\nSOURCES_UTILISEES: 1"}}
         ]
     }
 

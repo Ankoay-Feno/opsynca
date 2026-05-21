@@ -42,11 +42,59 @@
   --warning: #f59e0b;
   --success: #22c55e;
   --info: #3b82f6;
+  /* Theme-aware accents for chips/badges (overridden in light mode) */
+  --topbar-bg: rgb(11 15 21 / 86%);
+  --source-chip-text: #9bbcff;
+  --source-chip-bg-hover: rgb(75 138 255 / 22%);
+  --source-chip-text-hover: #cddcff;
+  --web-source-text: #d8b4fe;
+  --web-source-bg-hover: rgb(168 85 247 / 24%);
+  --web-source-text-hover: #ede9fe;
+  --danger-soft-bg: rgb(239 83 80 / 10%);
+  --danger-soft-border: rgb(239 83 80 / 35%);
+  --danger-soft-text: #ffb4b1;
+  --ghost-hover-bg: rgb(255 255 255 / 5%);
+  --on-primary: #042b18;
   /* Bubble radius (per spec) */
   --bubble-radius: 20px;
   /* Subtle bubble lift — spec forbids large shadows */
   --bubble-shadow: 0 1px 2px rgb(0 0 0 / 18%);
   --shadow: 0 12px 32px rgb(0 0 0 / 40%);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  background: #f6f8fb;
+  color: #0f172a;
+  --bg-base: #f6f8fb;
+  --bg-elev-1: #ffffff;
+  --bg-elev-2: #eef2f7;
+  --surface: #ffffff;
+  --surface-soft: #f1f4f9;
+  --border: #dde3eb;
+  --border-soft: #e7ecf2;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --muted: #64748b;
+  --primary-soft: rgb(34 197 94 / 14%);
+  --primary-border: rgb(22 163 74 / 38%);
+  --secondary-soft: rgb(59 130 246 / 10%);
+  --secondary-border: rgb(59 130 246 / 34%);
+  --tertiary-soft: rgb(168 85 247 / 12%);
+  --tertiary-border: rgb(168 85 247 / 32%);
+  --topbar-bg: rgb(255 255 255 / 82%);
+  --source-chip-text: #1d4ed8;
+  --source-chip-bg-hover: rgb(59 130 246 / 16%);
+  --source-chip-text-hover: #1e40af;
+  --web-source-text: #6d28d9;
+  --web-source-bg-hover: rgb(168 85 247 / 18%);
+  --web-source-text-hover: #4c1d95;
+  --danger-soft-bg: rgb(239 68 68 / 8%);
+  --danger-soft-border: rgb(239 68 68 / 36%);
+  --danger-soft-text: #b91c1c;
+  --ghost-hover-bg: rgb(15 23 42 / 6%);
+  --bubble-shadow: 0 1px 2px rgb(15 23 42 / 6%);
+  --shadow: 0 12px 32px rgb(15 23 42 / 12%);
 }
 
 * {
@@ -99,7 +147,7 @@ button:disabled {
   justify-content: space-between;
   gap: 18px;
   border-bottom: 1px solid var(--border);
-  background: rgb(11 15 21 / 86%);
+  background: var(--topbar-bg);
   backdrop-filter: blur(14px);
 }
 
@@ -348,7 +396,7 @@ button:disabled {
 
 .icon-button.ghost.history-new:hover {
   background: var(--primary);
-  color: #042b18;
+  color: var(--on-primary);
   box-shadow: 0 0 0 3px var(--primary-soft);
 }
 
@@ -458,7 +506,7 @@ button:disabled {
   padding: 0 14px;
   border-radius: 8px;
   background: var(--primary);
-  color: #042b18;
+  color: var(--on-primary);
   font-weight: 700;
   cursor: pointer;
   transition: background 0.16s ease, transform 0.05s ease, box-shadow 0.16s ease;
@@ -486,9 +534,9 @@ button:disabled {
 }
 
 .status-line.danger {
-  border-color: rgb(239 83 80 / 35%);
-  background: rgb(239 83 80 / 10%);
-  color: #ffb4b1;
+  border-color: var(--danger-soft-border);
+  background: var(--danger-soft-bg);
+  color: var(--danger-soft-text);
 }
 
 .document-list {
@@ -599,13 +647,13 @@ button:disabled {
   justify-self: end;
   background: var(--primary);
   border-color: var(--primary-strong);
-  color: #042b18;
+  color: var(--on-primary);
   /* Asymmetric corner for "tail" feel (per spec: expressive, conversational) */
   border-bottom-right-radius: 6px;
 }
 
 .message.user .message-content p {
-  color: #042b18;
+  color: var(--on-primary);
 }
 
 .message.assistant {
@@ -633,7 +681,7 @@ button:disabled {
 
 .message.user .message-icon {
   background: rgb(255 255 255 / 22%);
-  color: #042b18;
+  color: var(--on-primary);
 }
 
 .message.assistant .message-icon {
@@ -663,7 +711,7 @@ button:disabled {
   border-radius: 999px;
   background: var(--accent-soft);
   border: 1px solid var(--accent-border);
-  color: #9bbcff;
+  color: var(--source-chip-text);
   font-size: 12px;
   font-weight: 600;
   cursor: help;
@@ -672,8 +720,8 @@ button:disabled {
 
 .source-chip:hover,
 .source-chip:focus-visible {
-  background: rgb(75 138 255 / 22%);
-  color: #cddcff;
+  background: var(--source-chip-bg-hover);
+  color: var(--source-chip-text-hover);
 }
 
 .source-chip-label {
@@ -757,7 +805,7 @@ button:disabled {
   border-radius: 999px;
   background: var(--tertiary-soft);
   border: 1px solid var(--tertiary-border);
-  color: #d8b4fe;
+  color: var(--web-source-text);
   font-size: 12px;
   font-weight: 600;
   text-decoration: none;
@@ -766,8 +814,8 @@ button:disabled {
 }
 
 .web-source-chip:hover {
-  background: rgb(168 85 247 / 24%);
-  color: #ede9fe;
+  background: var(--web-source-bg-hover);
+  color: var(--web-source-text-hover);
 }
 
 .web-source-label {
@@ -858,7 +906,7 @@ button:disabled {
 }
 
 .conversation-item .icon-button.ghost:hover {
-  background: rgb(255 255 255 / 5%);
+  background: var(--ghost-hover-bg);
   color: var(--text-primary);
 }
 
@@ -929,13 +977,13 @@ button:disabled {
   border-radius: 999px;
   background: var(--primary);
   border-color: var(--primary);
-  color: #042b18;
+  color: var(--on-primary);
 }
 
 .send-button:hover {
   background: var(--primary-strong);
   border-color: var(--primary-strong);
-  color: #042b18;
+  color: var(--on-primary);
   box-shadow: 0 0 0 3px var(--primary-soft);
 }
 
@@ -1254,3 +1302,167 @@ button:disabled {
     height: 44px;
   }
 }
+
+.notfound {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 0% 0%, rgb(34 201 122 / 6%), transparent 50%),
+    radial-gradient(circle at 100% 100%, rgb(75 138 255 / 4%), transparent 50%),
+    var(--bg-base);
+}
+
+.notfound-toggle {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+}
+
+.notfound-card {
+  width: 100%;
+  max-width: 480px;
+  display: grid;
+  gap: 10px;
+  padding: 36px 32px 32px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.notfound-eyebrow {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.notfound-code {
+  margin: 6px 0 0;
+  font-size: clamp(80px, 16vw, 112px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.notfound-title {
+  margin: 6px 0 0;
+  color: var(--text-primary);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.notfound-text {
+  margin: 4px auto 0;
+  max-width: 360px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.notfound-actions {
+  display: inline-flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+@media (max-width: 480px) {
+  .notfound-card {
+    padding: 28px 20px;
+  }
+
+  .notfound-toggle {
+    top: 12px;
+    right: 12px;
+  }
+}
+
+.theme-toggle-wrap {
+  position: relative;
+}
+
+.theme-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 30;
+  display: grid;
+  gap: 2px;
+  min-width: 160px;
+  margin-top: 8px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition:
+    opacity 0.14s ease,
+    transform 0.14s ease,
+    visibility 0s linear 0.14s;
+}
+
+/* Invisible bridge so mouse can cross the gap between trigger and menu
+   without losing :hover on the wrap */
+.theme-menu::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 0;
+  right: 0;
+  height: 10px;
+}
+
+.theme-toggle-wrap:hover .theme-menu,
+.theme-toggle-wrap:focus-within .theme-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+  transition:
+    opacity 0.14s ease,
+    transform 0.14s ease,
+    visibility 0s linear 0s;
+}
+
+.theme-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.theme-option:hover,
+.theme-option:focus-visible {
+  outline: none;
+  background: var(--bg-elev-2);
+  color: var(--text-primary);
+}
+
+.theme-option.active {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
