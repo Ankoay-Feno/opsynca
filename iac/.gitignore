@@ -4,6 +4,7 @@ terraform.tfstate.*
 *.tfplan
 *.tfvars
 !terraform.tfvars.example
+!terraform.tfvars
 env_variables/**/*.local.json
 env_variables/**/*.secret.json
 env_variables/backend/backend_env.json
