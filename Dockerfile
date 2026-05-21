@@ -16,6 +16,7 @@ RUN apt-get update \
         tesseract-ocr-fra \
     && rm -rf /var/lib/apt/lists/*
 
+    
 COPY pyproject.toml uv.lock .python-version README.md ./
 RUN uv sync --frozen --no-dev
 

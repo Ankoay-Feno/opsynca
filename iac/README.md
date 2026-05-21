@@ -175,6 +175,7 @@ Important: si Terraform gere un secret Container Apps, la valeur est presente da
 
 Si ton image GHCR/Docker Hub est publique:
 
+
 ```hcl
 registry = null
 ```
