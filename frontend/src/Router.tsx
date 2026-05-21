@@ -1,20 +1,28 @@
 import { useEffect, useState } from "react";
 
-import { RagApp } from "./apps/RagApp";
 import { NotFound } from "./components/NotFound";
+import { PortfolioApp } from "./portfolio/PortfolioApp";
 
-function isHomePath(pathname: string): boolean {
-  return pathname === "/" || pathname === "";
+function normalize(pathname: string): string {
+  if (!pathname) return "/";
+  if (pathname.length > 1 && pathname.endsWith("/")) {
+    return pathname.slice(0, -1);
+  }
+  return pathname;
 }
 
 export function Router() {
-  const [pathname, setPathname] = useState<string>(() => window.location.pathname);
+  const [pathname, setPathname] = useState<string>(() => normalize(window.location.pathname));
 
   useEffect(() => {
-    const onPop = () => setPathname(window.location.pathname);
+    const onPop = () => setPathname(normalize(window.location.pathname));
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
-  return isHomePath(pathname) ? <RagApp /> : <NotFound />;
+  if (pathname === "/" || pathname === "") {
+    return <PortfolioApp />;
+  }
+
+  return <NotFound />;
 }
