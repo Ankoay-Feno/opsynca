@@ -1,4 +1,5 @@
 name: Frontend
+run-name: Frontend CI/CD
 
 on:
   pull_request:

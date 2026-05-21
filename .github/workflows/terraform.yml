@@ -1,4 +1,5 @@
 name: Terraform
+run-name: Terraform CI/CD
 
 on:
   pull_request:
