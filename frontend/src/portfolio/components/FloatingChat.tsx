@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { GripHorizontal, Send, Sparkles, X } from "lucide-react";
 
 import { fetchAnswer } from "../../api";
+import { deriveTitle, loadConversation, saveConversation } from "../../storage";
 import type { ChatHistoryMessage } from "../../types";
 import type { VectorIndex } from "../../vectorSearch";
 import { ensurePortfolioIndex, retrieveContext, type IndexStatus } from "../chatIndex";
@@ -10,6 +11,7 @@ import { KnowledgeTransfer } from "./KnowledgeTransfer";
 
 const STORAGE_POS = "pf-chat-position";
 const STORAGE_WIN_POS = "pf-chat-window-position";
+const STORAGE_CHAT_ID = "pf-chat-floating";
 const DRAG_THRESHOLD = 6;
 const BUBBLE_SIZE = 56;
 const EDGE_MARGIN = 12;
@@ -138,6 +140,57 @@ export function FloatingChat() {
   const abortRef = useRef<AbortController | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const conversationCreatedAtRef = useRef<number | null>(null);
+  const conversationLoadedRef = useRef(false);
+
+  // Load persisted conversation on mount
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const stored = await loadConversation(STORAGE_CHAT_ID);
+        if (cancelled) return;
+        if (stored && stored.messages.length > 0) {
+          conversationCreatedAtRef.current = stored.createdAt;
+          setMessages([
+            INTRO_MESSAGE,
+            ...stored.messages.map((m) => ({
+              id: m.id,
+              role: m.role,
+              content: m.content,
+            })),
+          ]);
+        }
+      } catch {
+        // IDB unavailable → chat stays ephemeral, no surface error
+      } finally {
+        conversationLoadedRef.current = true;
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Persist conversation whenever messages change (after initial load)
+  useEffect(() => {
+    if (!conversationLoadedRef.current) return;
+    const persistable = messages
+      .filter((m) => m.id !== "intro" && !m.pending && !m.error)
+      .map(({ id, role, content }) => ({ id, role, content }));
+    if (persistable.length === 0) return;
+    const now = Date.now();
+    if (conversationCreatedAtRef.current === null) {
+      conversationCreatedAtRef.current = now;
+    }
+    void saveConversation({
+      id: STORAGE_CHAT_ID,
+      title: deriveTitle(persistable),
+      createdAt: conversationCreatedAtRef.current,
+      updatedAt: now,
+      messages: persistable,
+    });
+  }, [messages]);
 
   const triggerIndex = async () => {
     setIndexStatus({ kind: "indexing", progress: 0, total: 0, phase: "Initialisation" });
