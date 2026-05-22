@@ -1,8 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { GripHorizontal, Send, Sparkles, X } from "lucide-react";
+import { GripHorizontal, Send, Sparkles, Trash2, X } from "lucide-react";
 
 import { fetchAnswer } from "../../api";
-import { deriveTitle, loadConversation, saveConversation } from "../../storage";
+import {
+  deleteConversation,
+  deriveTitle,
+  loadConversation,
+  saveConversation,
+} from "../../storage";
 import type { ChatHistoryMessage } from "../../types";
 import type { VectorIndex } from "../../vectorSearch";
 import { ensurePortfolioIndex, retrieveContext, type IndexStatus } from "../chatIndex";
@@ -382,6 +387,23 @@ export function FloatingChat() {
 
   const closeChat = () => setOpen(false);
 
+  const clearChat = async () => {
+    const confirmed = window.confirm(
+      "Effacer toute la conversation ? Cette action est irréversible.",
+    );
+    if (!confirmed) return;
+    abortRef.current?.abort();
+    try {
+      await deleteConversation(STORAGE_CHAT_ID);
+    } catch {
+      // IDB delete failed — clear UI anyway so the user is unblocked
+    }
+    conversationCreatedAtRef.current = null;
+    setMessages([INTRO_MESSAGE]);
+    setInput("");
+    setLoading(false);
+  };
+
   const sendQuestion = async (question: string) => {
     const trimmed = question.trim();
     if (!trimmed || loading) return;
@@ -577,6 +599,16 @@ export function FloatingChat() {
             <span className="pf-chat-drag-handle" aria-hidden="true" title="Glisser pour déplacer">
               <GripHorizontal size={14} />
             </span>
+            <button
+              type="button"
+              className="pf-chat-close"
+              onClick={clearChat}
+              disabled={messages.length <= 1 || loading}
+              aria-label="Effacer la conversation"
+              title="Effacer la conversation"
+            >
+              <Trash2 size={16} aria-hidden="true" />
+            </button>
             <button
               type="button"
               className="pf-chat-close"
