@@ -466,7 +466,7 @@ export function FloatingChat() {
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        aria-label={`Discuter avec ${profile.shortName}`}
+        aria-label={`Discuter avec ${profile.chatName}`}
       >
         <span className="pf-chat-bubble-avatar">
           {!imgFailed && (
@@ -535,7 +535,7 @@ export function FloatingChat() {
         <div
           className={`pf-chat-window ${winSnapping ? "pf-chat-window-snapping" : ""}`}
           role="dialog"
-          aria-label={`Chat IA — ${profile.shortName}`}
+          aria-label={`Chat IA — ${profile.chatName}`}
           style={winStyleObj}
         >
           <header
@@ -564,7 +564,7 @@ export function FloatingChat() {
               </div>
               <div className="pf-chat-header-text">
                 <div className="pf-chat-header-name">
-                  {profile.shortName}
+                  {profile.chatName}
                   <span className="pf-chat-header-tag" aria-label="version IA">
                     AI
                   </span>

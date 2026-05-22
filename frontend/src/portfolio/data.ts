@@ -46,6 +46,7 @@ export type SocialLink = {
 export const profile = {
   name: "RANDRIANIHARISOA Anjara Feno",
   shortName: "Ankoay Feno",
+  chatName: "ankoay.dev",
   title: "Cloud & DevOps Engineer",
   tagline: "AWS · Terraform · CI/CD · Kubernetes",
   bio: "Cloud & DevOps Engineer spécialisé AWS et automatisation d'infrastructure. J'aime concevoir des architectures fiables, automatisées et observables — du provisionnement Terraform jusqu'aux pipelines CI/CD et au monitoring en production.",
