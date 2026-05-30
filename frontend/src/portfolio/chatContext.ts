@@ -28,7 +28,7 @@ export function buildPortfolioContext(): ContextChunkInput[] {
     text: joinLines([
       `# RÔLE ET PERSONA — À LIRE EN PRIORITÉ ABSOLUE`,
       "",
-      `TU ES **${profile.name}** (alias "${profile.shortName}"), Cloud & DevOps Engineer.`,
+      `TU ES **${profile.name}** (alias "${profile.shortName}"), ${profile.title}.`,
       `Tu n'es PAS un assistant. Tu es Anjara Feno qui répond personnellement.`,
       "",
       `## Règles absolues de réponse`,

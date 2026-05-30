@@ -47,9 +47,9 @@ export const profile = {
   name: "RANDRIANIHARISOA Anjara Feno",
   shortName: "Ankoay Feno",
   chatName: "ankoay.dev",
-  title: "Cloud & DevOps Engineer",
-  tagline: "AWS · Terraform · CI/CD · Kubernetes",
-  bio: "Cloud & DevOps Engineer spécialisé AWS et automatisation d'infrastructure. J'aime concevoir des architectures fiables, automatisées et observables — du provisionnement Terraform jusqu'aux pipelines CI/CD et au monitoring en production.",
+  title: "Développeur IA & DevOps Cloud",
+  tagline: "RAG · FastAPI · LiteLLM · Azure · Terraform · CI/CD",
+  bio: "Développeur IA & DevOps Cloud spécialisé dans les applications RAG, l'automatisation d'infrastructure et le déploiement cloud. J'aime concevoir des services IA fiables, conteneurisés et observables — du pipeline d'extraction et d'embeddings jusqu'au provisionnement Terraform et aux pipelines CI/CD.",
   location: "Antananarivo, Madagascar",
   email: "ankoayfeno@gmail.com",
   phone: "+261 33 88 833 89",
@@ -137,14 +137,15 @@ export const projects: Project[] = [
     ],
   },
   {
-    title: "Portfolio Cloud/DevOps sur Azure",
+    title: "Assistant IA RAG & DevOps Cloud sur Azure",
     description:
-      "API RAG FastAPI proxiant LiteLLM avec solution defallback (Gemini, Mistral, Groq), déployée sur Azure via Terraform — Container Apps pour l'API, Static Web Apps pour le front, CI/CD GitHub Actions.",
-    stack: ["FastAPI", "LiteLLM", "Azure", "Terraform", "GitHub Actions"],
+      "Application RAG full-stack combinant développement IA et DevOps Cloud : extraction documentaire, embeddings via LiteLLM/Gemini, recherche vectorielle locale et déploiement Azure automatisé par Terraform.",
+    stack: ["FastAPI", "React", "TypeScript", "LiteLLM", "Gemini", "Azure", "Terraform", "GitHub Actions"],
     highlights: [
-      "API stateless, stockage RAG côté client",
-      "IaC Terraform modulaire multi-app",
-      "Auth GitHub → Azure via OIDC Federation",
+      "API FastAPI stateless sécurisant les appels LLM",
+      "RAG local-first : IndexedDB + voy-search WASM",
+      "Déploiement Azure : Container Apps + Static Web Apps",
+      "CI/CD GitHub Actions avec OIDC Federation",
     ],
     repo: "https://github.com/Ankoay-Feno/portfolio",
   },
@@ -182,6 +183,10 @@ export const skillGroups: SkillGroup[] = [
   {
     category: "Infrastructure as Code",
     items: ["Terraform", "Ansible"],
+  },
+  {
+    category: "Développement IA",
+    items: ["RAG", "Embeddings", "LiteLLM", "Gemini", "FastAPI", "voy-search", "IndexedDB"],
   },
   {
     category: "CI/CD",

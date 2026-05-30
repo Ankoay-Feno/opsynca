@@ -8,6 +8,7 @@ const CATEGORY_META: Record<string, { tag: string; emoji: string; lvl: number }>
   "Cloud AWS": { tag: "cloud/aws", emoji: "☁", lvl: 18 },
   "Cloud Azure": { tag: "cloud/azure · ce portfolio", emoji: "▲", lvl: 11 },
   "Infrastructure as Code": { tag: "iac/terraform", emoji: "🏗", lvl: 16 },
+  "Développement IA": { tag: "ai/rag-pipeline", emoji: "◈", lvl: 10 },
   "CI/CD": { tag: "pipelines/cicd", emoji: "⚙", lvl: 17 },
   Conteneurisation: { tag: "runtime/containers", emoji: "📦", lvl: 14 },
   Observabilité: { tag: "observability/o11y", emoji: "📊", lvl: 12 },
