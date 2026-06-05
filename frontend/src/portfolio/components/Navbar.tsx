@@ -45,9 +45,9 @@ export function Navbar() {
             <img src={profile.photoPath} alt="" draggable={false} />
           </span>
           <span className="pf-nav-brand-text">
-            <span className="pf-nav-brand-name">ankoayfeno</span>
+            <span className="pf-nav-brand-name">ankoay</span>
             <span className="pf-nav-brand-dot">.</span>
-            <span className="pf-nav-brand-tld">cloud</span>
+            <span className="pf-nav-brand-tld">dev</span>
           </span>
           <span className="pf-nav-brand-status" aria-hidden="true">
             <StatusDot variant="running" />

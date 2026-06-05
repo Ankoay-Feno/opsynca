@@ -30,8 +30,8 @@ export function Footer() {
               <img src={profile.photoPath} alt="" draggable={false} />
             </span>
             <span className="pf-footer-brand-text">
-              <span className="pf-footer-brand-name">ankoayfeno</span>
-              <span className="pf-footer-brand-tld">.cloud</span>
+              <span className="pf-footer-brand-name">ankoay</span>
+              <span className="pf-footer-brand-tld">.dev</span>
             </span>
           </div>
           <p className="pf-footer-bio">
