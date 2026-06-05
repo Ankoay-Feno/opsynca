@@ -126,6 +126,7 @@ module "api_apps" {
 
   environment_variables = merge(each.value.backend_env_vars, each.value.api.env_vars, {
     CORS_ALLOW_ORIGINS = join(",", local.api_cors_allow_origins[each.key])
+    ENVIRONMENT        = "production"
   })
 
   secret_environment_variables = local.backend_secret_names

@@ -25,7 +25,13 @@ def _parse_origins(raw: str) -> list[str]:
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="OPSYNCA AI API")
+    # En production: pas de Swagger /docs, /redoc ni de schema OpenAPI public,
+    # pour qu'un visiteur ne puisse pas executer le backend depuis l'UI /docs.
+    is_production = os.getenv("ENVIRONMENT", "").strip().lower() == "production"
+    docs_kwargs = (
+        {"docs_url": None, "redoc_url": None, "openapi_url": None} if is_production else {}
+    )
+    app = FastAPI(title="OPSYNCA AI API", **docs_kwargs)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=_parse_origins(os.getenv("CORS_ALLOW_ORIGINS", _DEFAULT_ORIGINS)),
