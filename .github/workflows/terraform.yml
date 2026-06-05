@@ -42,6 +42,11 @@ jobs:
           printf '%s' "$BACKEND_ENV_JSON" > env_variables/backend/backend_env.json
           printf '%s' "$FRONTEND_ENV_JSON" > env_variables/frontend/frontend_env.json
 
+      - name: Restore terraform.tfvars
+        env:
+          TFVARS: ${{ secrets.TFVARS }}
+        run: printf '%s' "$TFVARS" > terraform.tfvars
+
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.9.8
@@ -87,6 +92,11 @@ jobs:
           mkdir -p env_variables/backend env_variables/frontend
           printf '%s' "$BACKEND_ENV_JSON" > env_variables/backend/backend_env.json
           printf '%s' "$FRONTEND_ENV_JSON" > env_variables/frontend/frontend_env.json
+
+      - name: Restore terraform.tfvars
+        env:
+          TFVARS: ${{ secrets.TFVARS }}
+        run: printf '%s' "$TFVARS" > terraform.tfvars
 
       - uses: hashicorp/setup-terraform@v3
         with:
