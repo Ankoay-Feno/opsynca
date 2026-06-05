@@ -44,6 +44,13 @@ def test_parse_answer_extracts_used_indices():
     assert indices == [1, 3]
 
 
+def test_parse_answer_strips_inline_marker():
+    raw = "Tu peux me contacter a x@y.com. SOURCES_UTILISEES: 1,2,4,5"
+    answer, indices = _parse_answer(raw, max_index=5)
+    assert answer == "Tu peux me contacter a x@y.com."
+    assert indices == [1, 2, 4, 5]
+
+
 def test_parse_answer_handles_none_marker():
     raw = "Reponse libre.\nSOURCES_UTILISEES: aucune"
     answer, indices = _parse_answer(raw, max_index=2)
