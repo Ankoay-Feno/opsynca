@@ -145,10 +145,24 @@ def _supports_google_search(model: str) -> bool:
     return model.lower().startswith("gemini")
 
 
-# Le marqueur peut etre sur sa propre ligne OU colle en fin de phrase par le
-# modele. On le cherche n'importe ou (derniere occurrence) jusqu'a la fin de
-# sa ligne, jamais affiche : il sert uniquement a remplir used_context_indices.
-_SOURCES_MARKER = re.compile(r"sources_utilisees\s*:\s*([^\n]*)", re.IGNORECASE)
+# Le marqueur de sources n'est jamais affiche : il sert uniquement a remplir
+# used_context_indices. Les modeles de fallback ne respectent pas toujours le
+# format demande (SOURCES_UTILISEES) et inventent des variantes : "getSource",
+# "used_sources", "sources", colle en fin de phrase, etc. On tolere tout label
+# contenant "source(s)" suivi de ":" et d'une liste de numeros.
+_SOURCES_MARKER = re.compile(
+    r"\b(?:get|used)?_?\s*sources?(?:_utilisees)?\s*:\s*([^\n]*)",
+    re.IGNORECASE,
+)
+_INDEX_LIST = re.compile(r"[\d\s,;]+")
+
+
+def _looks_like_index_list(value: str) -> bool:
+    value = value.strip().strip("[]").strip()
+    if not value or value.lower() in {"aucune", "none", "-"}:
+        return True
+    # Evite de couper une vraie phrase ("...la source: mon raisonnement").
+    return bool(_INDEX_LIST.fullmatch(value))
 
 
 def _parse_answer(raw: str, max_index: int) -> tuple[str, list[int]]:
@@ -156,9 +170,10 @@ def _parse_answer(raw: str, max_index: int) -> tuple[str, list[int]]:
     if not max_index or not text:
         return text.strip(), []
 
-    matches = list(_SOURCES_MARKER.finditer(text))
-    if matches:
-        match = matches[-1]
+    # Derniere occurrence d'abord : le marqueur est en fin de reponse.
+    for match in reversed(list(_SOURCES_MARKER.finditer(text))):
+        if not _looks_like_index_list(match.group(1)):
+            continue
         indices = _extract_indices(match.group(1), max_index)
         cleaned = text[: match.start()].rstrip()
         return cleaned or text.strip(), indices

@@ -51,6 +51,20 @@ def test_parse_answer_strips_inline_marker():
     assert indices == [1, 2, 4, 5]
 
 
+def test_parse_answer_strips_alternate_marker_name():
+    raw = "Tu peux m'ecrire a x@y.com.getSource: 1,8"
+    answer, indices = _parse_answer(raw, max_index=8)
+    assert answer == "Tu peux m'ecrire a x@y.com."
+    assert indices == [1, 8]
+
+
+def test_parse_answer_keeps_sentence_with_non_index_colon():
+    raw = "Voici la source: une explication detaillee du sujet."
+    answer, indices = _parse_answer(raw, max_index=3)
+    assert answer == raw
+    assert indices == []
+
+
 def test_parse_answer_handles_none_marker():
     raw = "Reponse libre.\nSOURCES_UTILISEES: aucune"
     answer, indices = _parse_answer(raw, max_index=2)
