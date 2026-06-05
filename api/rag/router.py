@@ -73,7 +73,7 @@ async def answer(
             raise
         response = await litellm.chat(messages, tools=None)
 
-    raw = _extract_message_content(response)
+    raw = _strip_reasoning(_extract_message_content(response))
     final_text, used_indices = _parse_answer(raw, len(payload.context))
     return AnswerResponse(
         answer=final_text,
@@ -92,6 +92,21 @@ def _extract_message_content(response: dict[str, Any]) -> str:
             if isinstance(content, str):
                 return content
     return ""
+
+
+# Les modeles de fallback a "thinking" (Qwen, etc.) emettent leur raisonnement
+# dans des balises <think>...</think> qui ne doivent jamais atteindre l'utilisateur.
+_THINK_BLOCK = re.compile(r"<think\b[^>]*>.*?</think\s*>", re.IGNORECASE | re.DOTALL)
+_THINK_DANGLING = re.compile(r"^.*?</think\s*>", re.DOTALL)
+
+
+def _strip_reasoning(text: str) -> str:
+    cleaned = _THINK_BLOCK.sub("", text)
+    # Balise de fermeture orpheline (ouverture tronquee ou raisonnement
+    # concatene sans balise d'ouverture) : on coupe tout jusqu'a elle.
+    if "</think" in cleaned.lower():
+        cleaned = _THINK_DANGLING.sub("", cleaned)
+    return cleaned.strip()
 
 
 @router.post("/api/title", response_model=TitleResponse)
@@ -119,7 +134,7 @@ async def generate_title(
         {"role": "user", "content": f"Conversation:\n{transcript}"},
     ]
     response = await litellm.chat(messages)
-    raw = response["choices"][0]["message"].get("content", "") or ""
+    raw = _strip_reasoning(response["choices"][0]["message"].get("content", "") or "")
     title = raw.strip().strip("\"'").rstrip(".!?").strip()
     if not title:
         raise HTTPException(status_code=502, detail="Le modele n'a pas renvoye de titre.")

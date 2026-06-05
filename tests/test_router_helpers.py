@@ -2,8 +2,29 @@ from api.rag.router import (
     _extract_indices,
     _extract_web_sources,
     _parse_answer,
+    _strip_reasoning,
     _supports_google_search,
 )
+
+
+def test_strip_reasoning_removes_think_block():
+    raw = "<think>Je reflechis a la reponse...</think>Voici la reponse finale."
+    assert _strip_reasoning(raw) == "Voici la reponse finale."
+
+
+def test_strip_reasoning_removes_multiline_and_multiple_blocks():
+    raw = "<think>\nligne 1\nligne 2\n</think>Debut.<think>encore</think> Fin."
+    assert _strip_reasoning(raw) == "Debut. Fin."
+
+
+def test_strip_reasoning_handles_dangling_closing_tag():
+    raw = "raisonnement sans ouverture</think>La vraie reponse."
+    assert _strip_reasoning(raw) == "La vraie reponse."
+
+
+def test_strip_reasoning_leaves_normal_text_untouched():
+    raw = "Une reponse normale sans balise."
+    assert _strip_reasoning(raw) == "Une reponse normale sans balise."
 
 
 def test_supports_google_search_true_for_gemini():
