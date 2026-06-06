@@ -3,10 +3,13 @@ import { listAllChunks, addChunks, type StoredChunk } from "../storage";
 import { VectorIndex } from "../vectorSearch";
 import type { ContextChunkInput } from "../types";
 import { buildPortfolioContext } from "./chatContext";
-
-const PORTFOLIO_DOC_ID = "me-portfolio";
-const PORTFOLIO_VERSION_KEY = "pf-chat-index-version";
-const CURRENT_VERSION = "v4-2026-05-azure";
+import {
+  PORTFOLIO_DOC_ID,
+  PORTFOLIO_VERSION_KEY,
+  PORTFOLIO_HASH_KEY,
+  CURRENT_VERSION,
+  makeChunkId,
+} from "./chatIndexConstants";
 
 export type IndexStatus =
   | { kind: "idle" }
@@ -20,8 +23,95 @@ export type RetrievedChunk = {
   text: string;
 };
 
-function makeChunkId(idx: number): string {
-  return `${PORTFOLIO_DOC_ID}-${idx}`;
+// Shape of the precomputed artifact served from /portfolio-index.json.
+type PrecomputedChunk = {
+  filename: string | null;
+  chunk_index: number | null;
+  text: string;
+  vector: number[];
+};
+
+type PrecomputedIndex = {
+  version: string;
+  contentHash: string;
+  dim: number;
+  count: number;
+  chunks: PrecomputedChunk[];
+};
+
+function isPrecomputedIndex(value: unknown): value is PrecomputedIndex {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Partial<PrecomputedIndex>;
+  return (
+    typeof v.version === "string" &&
+    typeof v.contentHash === "string" &&
+    typeof v.dim === "number" &&
+    typeof v.count === "number" &&
+    Array.isArray(v.chunks)
+  );
+}
+
+// Using Web Crypto API (crypto.subtle) on both sides (browser + Node >= 15)
+// guarantees byte-identical SHA-256 hashes without any extra dependency.
+async function sha256Hex(text: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+// Must match the same function in scripts/precompute-index.ts.
+async function computeContentHash(texts: string[]): Promise<string> {
+  const combined = texts.join("\x00");
+  return sha256Hex(combined);
+}
+
+/**
+ * Fetches /portfolio-index.json and validates it against the current KB.
+ * Returns null (without throwing) if the asset is absent, malformed, or stale.
+ */
+export async function loadPrecomputedIndex(
+  chunks: ContextChunkInput[],
+): Promise<PrecomputedIndex | null> {
+  let raw: unknown;
+  try {
+    const res = await fetch("/portfolio-index.json");
+    if (!res.ok) return null;
+    raw = await res.json();
+  } catch {
+    return null;
+  }
+
+  if (!isPrecomputedIndex(raw)) {
+    console.warn("precomputed index: invalid shape, fallback to runtime embedding");
+    return null;
+  }
+
+  if (raw.version !== CURRENT_VERSION) {
+    console.warn(
+      `precomputed index stale: version "${raw.version}" !== "${CURRENT_VERSION}", fallback to runtime embedding`,
+    );
+    return null;
+  }
+
+  if (raw.count !== chunks.length) {
+    console.warn(
+      `precomputed index stale: count ${raw.count} !== ${chunks.length}, fallback to runtime embedding`,
+    );
+    return null;
+  }
+
+  const expectedHash = await computeContentHash(chunks.map((c) => c.text));
+  if (raw.contentHash !== expectedHash) {
+    console.warn(
+      "precomputed index stale: contentHash mismatch, fallback to runtime embedding",
+    );
+    return null;
+  }
+
+  return raw;
 }
 
 function isCurrentVersion(): boolean {
@@ -32,11 +122,23 @@ function isCurrentVersion(): boolean {
   }
 }
 
-function markCurrentVersion(): void {
+function isCurrentHash(hash: string): boolean {
+  try {
+    return localStorage.getItem(PORTFOLIO_HASH_KEY) === hash;
+  } catch {
+    return false;
+  }
+}
+
+// Version = schema/model changes (e.g. Gemini 768d → local 384d: same text, different vectors).
+// Hash    = text changes (content edits that don't need a version bump).
+// Both must match to safely reuse the IDB cache.
+function markCurrentVersionAndHash(hash: string): void {
   try {
     localStorage.setItem(PORTFOLIO_VERSION_KEY, CURRENT_VERSION);
+    localStorage.setItem(PORTFOLIO_HASH_KEY, hash);
   } catch {
-    /* noop */
+    /* noop — private browsing mode may forbid writes */
   }
 }
 
@@ -59,12 +161,12 @@ function chunksLookValid(chunks: StoredChunk[], expectedCount: number): boolean 
 /**
  * Ensures the portfolio knowledge base is indexed and ready in voy-search.
  *
- * - First load (or after IDB clear/version bump): embeds all chunks via /api/embed,
- *   stores in IndexedDB, builds VectorIndex.
- * - Subsequent loads: rebuilds VectorIndex from cached chunks (no API calls).
- * - If anything is missing or corrupted, falls back to re-indexing.
+ * Priority order:
+ *  1. IndexedDB cache (valid version) — no network calls.
+ *  2. Precomputed static asset /portfolio-index.json — no /api/embed call.
+ *  3. Runtime fallback — calls /api/embed for every KB chunk.
  *
- * Progress is reported via onProgress so the UI can show a "transfert de connaissance" animation.
+ * Progress is reported via onProgress so the UI can show the indexing animation.
  */
 export async function ensurePortfolioIndex(
   onProgress?: (status: IndexStatus) => void,
@@ -72,8 +174,12 @@ export async function ensurePortfolioIndex(
   const context: ContextChunkInput[] = buildPortfolioContext();
   const expected = context.length;
 
-  // Try cache first
-  if (isCurrentVersion()) {
+  // Compute once; reused for IDB cache validation and for persisting after (re)indexing.
+  const currentHash = await computeContentHash(context.map((c) => c.text));
+
+  // 1. IndexedDB cache — valid only when version AND content hash AND chunk shape all match.
+  // Version catches model/dimension changes; hash catches text edits without a version bump.
+  if (isCurrentVersion() && isCurrentHash(currentHash)) {
     try {
       const cached = await loadExistingChunks();
       if (chunksLookValid(cached, expected)) {
@@ -83,11 +189,10 @@ export async function ensurePortfolioIndex(
         return { index, total: cached.length };
       }
     } catch {
-      // fall through to re-index
+      // fall through
     }
   }
 
-  // Index from scratch
   onProgress?.({
     kind: "indexing",
     progress: 0,
@@ -95,9 +200,47 @@ export async function ensurePortfolioIndex(
     phase: "Préparation des chunks",
   });
 
-  const texts = context.map((c) => c.text);
-  let vectors: number[][] = [];
+  // 2. Precomputed static asset
+  const precomputed = await loadPrecomputedIndex(context);
+  if (precomputed !== null) {
+    onProgress?.({
+      kind: "indexing",
+      progress: 0,
+      total: expected,
+      phase: "Chargement de l'index précalculé",
+    });
 
+    const stored: StoredChunk[] = precomputed.chunks.map((c, idx) => ({
+      id: makeChunkId(idx),
+      documentId: PORTFOLIO_DOC_ID,
+      chunkIndex: idx,
+      text: c.text,
+      vector: c.vector,
+    }));
+
+    onProgress?.({
+      kind: "indexing",
+      progress: expected,
+      total: expected,
+      phase: "Stockage dans IndexedDB",
+    });
+
+    try {
+      await addChunks(stored);
+    } catch {
+      // IndexedDB may be unavailable (private mode, etc.) — proceed in-memory only
+    }
+
+    markCurrentVersionAndHash(currentHash);
+
+    const index = new VectorIndex();
+    index.rebuild(stored);
+    onProgress?.({ kind: "ready", index, total: stored.length });
+    return { index, total: stored.length };
+  }
+
+  // 3. Runtime fallback: embed every KB chunk via /api/embed
+  let vectors: number[][] = [];
   try {
     onProgress?.({
       kind: "indexing",
@@ -105,7 +248,7 @@ export async function ensurePortfolioIndex(
       total: expected,
       phase: "Génération des embeddings",
     });
-    vectors = await embedTexts(texts);
+    vectors = await embedTexts(context.map((c) => c.text));
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Impossible de contacter le service d'embedding.";
@@ -140,7 +283,7 @@ export async function ensurePortfolioIndex(
     // IndexedDB may be unavailable (private mode, etc.) — proceed in-memory only
   }
 
-  markCurrentVersion();
+  markCurrentVersionAndHash(currentHash);
 
   const index = new VectorIndex();
   index.rebuild(stored);

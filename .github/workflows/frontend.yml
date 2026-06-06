@@ -27,6 +27,52 @@ jobs:
           submodules: true
           lfs: false
 
+      # --- Précompute des embeddings KB avec le modèle LOCAL (jamais Gemini) ---
+      # On lance le backend en mode local dans le runner et on génère
+      # frontend/public/portfolio-index.json. Vite le copiera dans dist/ au build.
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Cache fastembed model
+        uses: actions/cache@v4
+        with:
+          path: .fastembed_cache
+          key: fastembed-minilm-l12-multilingual-v1
+
+      - name: Install backend with local embeddings
+        run: uv sync --frozen --extra local-embed
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Precompute KB embeddings (local model)
+        env:
+          EMBEDDING_BACKEND: local
+          FASTEMBED_CACHE_DIR: ${{ github.workspace }}/.fastembed_cache
+          LOCAL_EMBEDDING_MODEL: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+        run: |
+          set -euo pipefail
+          # Pré-télécharge le modèle dans le cache (rapide si déjà caché).
+          uv run python -c "from fastembed import TextEmbedding; TextEmbedding(model_name='$LOCAL_EMBEDDING_MODEL', cache_dir='$FASTEMBED_CACHE_DIR')"
+          # Backend en mode embedding local, en arrière-plan.
+          uv run uvicorn api.main:app --host 127.0.0.1 --port 8000 &
+          backend_pid=$!
+          # Attend que /health réponde (max ~120s).
+          for _ in $(seq 1 60); do
+            curl -sf http://127.0.0.1:8000/ >/dev/null && break
+            sleep 2
+          done
+          curl -sf http://127.0.0.1:8000/ >/dev/null || { echo "::error::le backend ne démarre pas"; exit 1; }
+          # Génère l'artefact, embeddé par le modèle local (384d).
+          ( cd frontend && PRECOMPUTE_API_BASE=http://127.0.0.1:8000 npm run precompute )
+          kill "$backend_pid" 2>/dev/null || true
+
       - name: Azure login (OIDC)
         uses: azure/login@v2
         with:

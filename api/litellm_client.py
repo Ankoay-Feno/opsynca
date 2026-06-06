@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 import litellm
@@ -22,6 +23,30 @@ class LiteLLMClient:
     async def embed(self, texts: list[str]) -> list[list[float]]:
         if not texts:
             return []
+        if self.settings.embedding_backend == "local":
+            return await self._embed_local(texts)
+        return await self._embed_cloud(texts)
+
+    async def _embed_local(self, texts: list[str]) -> list[list[float]]:
+        # fastembed est synchrone et CPU-bound : on l'isole dans un thread pour
+        # ne pas bloquer l'event loop. Pas de fallback vers le cloud ici : un
+        # modele cloud a une dimension differente et casserait le retrieval.
+        from api.rag.local_embedder import embed_local
+
+        try:
+            return await asyncio.to_thread(
+                embed_local,
+                self.settings.local_embedding_model,
+                texts,
+                self.settings.embedding_cache_dir,
+            )
+        except Exception as exc:
+            raise HTTPException(
+                status_code=503,
+                detail={"message": "Local embedding failed.", "error": str(exc)},
+            ) from exc
+
+    async def _embed_cloud(self, texts: list[str]) -> list[list[float]]:
         try:
             response = await litellm.aembedding(
                 model=self.settings.embedding_model,

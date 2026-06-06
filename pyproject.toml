@@ -15,6 +15,13 @@ dependencies = [
     "uvicorn[standard]>=0.33.0",
 ]
 
+[project.optional-dependencies]
+# Embeddings locaux (opt-in via EMBEDDING_BACKEND=local). Hors de l'image prod
+# par defaut : `uv sync --extra local-embed` pour les activer.
+local-embed = [
+    "fastembed>=0.8.0",
+]
+
 [tool.uv.workspace]
 members = [
     "api",
