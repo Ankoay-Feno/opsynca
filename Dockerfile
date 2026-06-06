@@ -23,10 +23,13 @@ RUN uv sync --frozen --no-dev --extra local-embed
 
 # Bake le modele d'embedding dans l'image (sinon il se re-telechargerait a chaque
 # cold start scale-to-zero). Sert a la fois la precompute KB et les requetes runtime.
+# Le modele est PRE-TELECHARGE dans le runner CI (etape "Pre-download embedding
+# model") puis copie ici : on evite tout acces reseau HF pendant `docker build`,
+# qui est rate-limite/bloque en anonyme sur les IP GitHub Actions.
 ENV EMBEDDING_BACKEND=local \
     FASTEMBED_CACHE_DIR=/app/.fastembed_cache \
     LOCAL_EMBEDDING_MODEL=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
-RUN python -c "from fastembed import TextEmbedding; TextEmbedding(model_name='${LOCAL_EMBEDDING_MODEL}', cache_dir='${FASTEMBED_CACHE_DIR}')"
+COPY .fastembed_cache /app/.fastembed_cache
 
 COPY api ./api
 

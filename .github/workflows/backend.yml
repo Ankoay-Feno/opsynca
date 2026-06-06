@@ -31,6 +31,27 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Cache fastembed model
+        uses: actions/cache@v4
+        with:
+          path: .fastembed_cache
+          key: fastembed-minilm-l12-multilingual-v1
+
+      - name: Pre-download embedding model (baked into image)
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          set -euo pipefail
+          uv sync --frozen --extra local-embed
+          for i in 1 2 3 4 5; do
+            uv run python -c "from fastembed import TextEmbedding; TextEmbedding(model_name='sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2', cache_dir='.fastembed_cache')" && break
+            echo "download attempt $i failed, retry in 20s..."; sleep 20
+            [ "$i" = "5" ] && { echo "::error::model download failed"; exit 1; }
+          done
+
       - name: Build image (no push)
         uses: docker/build-push-action@v5
         with:
@@ -55,6 +76,27 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Cache fastembed model
+        uses: actions/cache@v4
+        with:
+          path: .fastembed_cache
+          key: fastembed-minilm-l12-multilingual-v1
+
+      - name: Pre-download embedding model (baked into image)
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          set -euo pipefail
+          uv sync --frozen --extra local-embed
+          for i in 1 2 3 4 5; do
+            uv run python -c "from fastembed import TextEmbedding; TextEmbedding(model_name='sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2', cache_dir='.fastembed_cache')" && break
+            echo "download attempt $i failed, retry in 20s..."; sleep 20
+            [ "$i" = "5" ] && { echo "::error::model download failed"; exit 1; }
+          done
 
       - name: Build and push image
         uses: docker/build-push-action@v5

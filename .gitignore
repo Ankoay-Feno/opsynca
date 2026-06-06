@@ -18,3 +18,5 @@ crash.log
 crash.*.log
 tfplan
 plan_output.txt
+# Modele fastembed pre-telecharge en CI, jamais committe
+.fastembed_cache/

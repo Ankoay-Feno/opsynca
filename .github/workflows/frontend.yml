@@ -56,10 +56,15 @@ jobs:
           EMBEDDING_BACKEND: local
           FASTEMBED_CACHE_DIR: ${{ github.workspace }}/.fastembed_cache
           LOCAL_EMBEDDING_MODEL: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           set -euo pipefail
-          # Pré-télécharge le modèle dans le cache (rapide si déjà caché).
-          uv run python -c "from fastembed import TextEmbedding; TextEmbedding(model_name='$LOCAL_EMBEDDING_MODEL', cache_dir='$FASTEMBED_CACHE_DIR')"
+          # Pré-télécharge le modèle (retries : HF rate-limite l'anonyme en CI).
+          for i in 1 2 3 4 5; do
+            uv run python -c "from fastembed import TextEmbedding; TextEmbedding(model_name='$LOCAL_EMBEDDING_MODEL', cache_dir='$FASTEMBED_CACHE_DIR')" && break
+            echo "download attempt $i failed, retry in 20s..."; sleep 20
+            [ "$i" = "5" ] && { echo "::error::model download failed"; exit 1; }
+          done
           # Backend en mode embedding local, en arrière-plan.
           uv run uvicorn api.main:app --host 127.0.0.1 --port 8000 &
           backend_pid=$!
