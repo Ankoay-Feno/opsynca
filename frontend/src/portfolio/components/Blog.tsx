@@ -71,7 +71,11 @@ export function Blog() {
               >
                 {post.coverImage && (
                   <div className="pf-blog-cover">
-                    <img src={post.coverImage} alt="" loading="lazy" />
+                    <img
+                      src={post.coverImage}
+                      alt={`Couverture de l'article « ${post.title} »`}
+                      loading="lazy"
+                    />
                   </div>
                 )}
                 <header className="pf-blog-meta">

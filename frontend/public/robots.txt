@@ -1,0 +1,5 @@
+# https://ankoay.dev — robots.txt
+User-agent: *
+Allow: /
+
+Sitemap: https://ankoay.dev/sitemap.xml

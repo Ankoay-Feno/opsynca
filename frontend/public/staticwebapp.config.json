@@ -1,0 +1,30 @@
+{
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": [
+      "/assets/*",
+      "/robots.txt",
+      "/sitemap.xml",
+      "/*.{png,jpg,jpeg,gif,svg,ico,json,xml,txt,webp,woff,woff2}"
+    ]
+  },
+  "mimeTypes": {
+    ".json": "application/json",
+    ".xml": "application/xml",
+    ".webmanifest": "application/manifest+json"
+  },
+  "globalHeaders": {
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin"
+  },
+  "routes": [
+    {
+      "route": "/sitemap.xml",
+      "headers": { "content-type": "application/xml; charset=utf-8" }
+    },
+    {
+      "route": "/robots.txt",
+      "headers": { "content-type": "text/plain; charset=utf-8" }
+    }
+  ]
+}
