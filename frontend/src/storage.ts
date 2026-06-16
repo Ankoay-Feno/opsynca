@@ -4,7 +4,7 @@ import type { ChatMessage } from "./types";
 
 const LEGACY_INDEX_KEY = "__index__";
 
-function createResilientStore(dbName: string, storeName: string): UseStore {
+export function createResilientStore(dbName: string, storeName: string): UseStore {
   let dbPromise: Promise<IDBDatabase> | null = null;
 
   function openDb(): Promise<IDBDatabase> {

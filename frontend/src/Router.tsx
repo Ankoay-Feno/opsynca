@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { NotFound } from "./components/NotFound";
+import { JobsView } from "./jobs/JobsView";
 import { PortfolioApp } from "./portfolio/PortfolioApp";
 
 function normalize(pathname: string): string {
@@ -22,6 +23,10 @@ export function Router() {
 
   if (pathname === "/" || pathname === "") {
     return <PortfolioApp />;
+  }
+
+  if (pathname === "/emplois") {
+    return <JobsView />;
   }
 
   return <NotFound />;

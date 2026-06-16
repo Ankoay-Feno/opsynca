@@ -2,7 +2,10 @@ import type {
   AnswerResponse,
   ChatHistoryMessage,
   ContextChunkInput,
+  CvJobSearchResponse,
   ExtractResponse,
+  JobFilters,
+  JobSearchResponse,
 } from "./types";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
@@ -50,6 +53,55 @@ export async function generateConversationTitle(
     body: JSON.stringify({ messages }),
   });
   return result.title;
+}
+
+export async function searchJobs(
+  query: string,
+  filters: JobFilters,
+  signal?: AbortSignal,
+): Promise<JobSearchResponse> {
+  const params = new URLSearchParams();
+  const trimmed = query.trim();
+  if (trimmed) params.set("q", trimmed);
+  params.set("madagascar", String(filters.madagascar));
+  params.set("remote", String(filters.remote));
+  return requestJson<JobSearchResponse>(`/api/jobs?${params.toString()}`, { signal });
+}
+
+export async function searchJobsFromCv(
+  file: File,
+  filters: JobFilters,
+  signal?: AbortSignal,
+): Promise<CvJobSearchResponse> {
+  const params = new URLSearchParams();
+  params.set("madagascar", String(filters.madagascar));
+  params.set("remote", String(filters.remote));
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return requestJson<CvJobSearchResponse>(`/api/jobs/from-cv?${params.toString()}`, {
+    method: "POST",
+    body: formData,
+    signal,
+  });
+}
+
+export async function searchJobsFromProfile(
+  profile: { metier: string | null; mots_cles: string[] },
+  filters: JobFilters,
+  signal?: AbortSignal,
+): Promise<CvJobSearchResponse> {
+  const params = new URLSearchParams();
+  params.set("madagascar", String(filters.madagascar));
+  params.set("remote", String(filters.remote));
+
+  return requestJson<CvJobSearchResponse>(`/api/jobs/from-profile?${params.toString()}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ metier: profile.metier, mots_cles: profile.mots_cles }),
+    signal,
+  });
 }
 
 async function requestJson<T>(path: string, options: RequestInit = {}): Promise<T> {

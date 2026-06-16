@@ -18,7 +18,12 @@ export function Footer() {
 
   const handleAnchor = (id: string) => {
     const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    // Depuis une autre page (ex: /emplois) : retour au portfolio a l'ancre.
+    window.location.href = `/#${id}`;
   };
 
   return (

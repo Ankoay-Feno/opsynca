@@ -10,8 +10,6 @@ body.pf-body {
   min-height: 100dvh;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-top: 60px;
-  padding-bottom: 38px;
 }
 
 body.pf-body #root {

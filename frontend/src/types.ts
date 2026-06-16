@@ -42,3 +42,33 @@ export type AnswerResponse = {
   used_context_indices: number[];
   web_sources: WebSource[];
 };
+
+export type Job = {
+  id: string;
+  titre: string;
+  entreprise: string | null;
+  lieu: string | null;
+  remote: boolean;
+  source: string;
+  lien: string;
+  date: string | null;
+  description: string | null;
+  match: number | null;
+};
+
+export type JobSearchResponse = {
+  count: number;
+  jobs: Job[];
+};
+
+export type JobFilters = {
+  madagascar: boolean;
+  remote: boolean;
+};
+
+export type CvJobSearchResponse = {
+  metier: string | null;
+  mots_cles: string[];
+  count: number;
+  jobs: Job[];
+};

@@ -3,6 +3,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api.jobs.router import router as jobs_router
 from api.rag.router import router as rag_router
 
 _DEFAULT_ORIGINS = "*"
@@ -40,6 +41,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(rag_router)
+    app.include_router(jobs_router)
 
     @app.get("/")
     async def health() -> dict[str, str]:

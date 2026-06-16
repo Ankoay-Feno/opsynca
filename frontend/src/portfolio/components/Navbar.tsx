@@ -29,7 +29,13 @@ export function Navbar() {
   const handleAnchor = (id: string) => {
     setOpen(false);
     const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    // Sur une autre page (ex: /emplois), la section n'existe pas ici : on
+    // revient au portfolio en ciblant l'ancre.
+    window.location.href = `/#${id}`;
   };
 
   return (
