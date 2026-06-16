@@ -20,9 +20,11 @@ export function JobCard({ job, applied, onToggleApplied }: JobCardProps) {
               {job.match}%
             </span>
           ) : null}
-          <span className="jobs-card-source" data-remote={job.remote}>
-            {job.remote ? "Remote" : job.source}
-          </span>
+          {job.remote ? (
+            <span className="jobs-card-source" data-remote="true">
+              Remote
+            </span>
+          ) : null}
         </div>
       </div>
 
@@ -39,6 +41,9 @@ export function JobCard({ job, applied, onToggleApplied }: JobCardProps) {
             {job.lieu}
           </span>
         ) : null}
+        <span className="jobs-card-src" title="Source de l'offre">
+          {job.source}
+        </span>
       </div>
 
       <div className="jobs-card-actions">

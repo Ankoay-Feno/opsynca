@@ -615,6 +615,18 @@ a.jobs-footer-item:hover {
   gap: 0.3rem;
 }
 
+/* Source affichee discretement (petit, attenue, en bout de ligne). */
+.jobs-card-src {
+  margin-left: auto;
+  font-size: 0.72rem;
+  color: var(--pf-text-soft);
+  opacity: 0.75;
+}
+
+.jobs-card-src::before {
+  content: "via ";
+}
+
 .jobs-card-actions {
   display: flex;
   align-items: center;

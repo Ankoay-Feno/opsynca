@@ -21,7 +21,12 @@ class Settings:
     careerjet_locale: str = "fr_MG"
     # Careerjet exige un header Referer (sinon 403). Doit idealement correspondre
     # au site editeur declare dans le compte Careerjet.
-    careerjet_referer: str = "https://thenextmind.ai"
+    careerjet_referer: str = "https://ankoay.dev"
+    # Jooble (meta-moteur). Cle gratuite, liee a une region (ex: fr.jooble.org).
+    # Si absente, le connecteur Jooble est ignore. `jooble_location` cible le
+    # remote francophone : "Télétravail" sur une cle FR.
+    jooble_api_key: str | None = None
+    jooble_location: str = "Télétravail"
 
 
 @lru_cache
@@ -37,5 +42,7 @@ def get_settings() -> Settings:
         embedding_cache_dir=os.getenv("FASTEMBED_CACHE_DIR") or None,
         careerjet_api_key=os.getenv("CAREERJET_API_KEY") or None,
         careerjet_locale=os.getenv("CAREERJET_LOCALE", "fr_MG"),
-        careerjet_referer=os.getenv("CAREERJET_REFERER", "https://thenextmind.ai"),
+        careerjet_referer=os.getenv("CAREERJET_REFERER", "https://ankoay.dev"),
+        jooble_api_key=os.getenv("JOOBLE_API_KEY") or None,
+        jooble_location=os.getenv("JOOBLE_LOCATION", "Télétravail"),
     )
