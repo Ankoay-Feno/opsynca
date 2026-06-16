@@ -9,7 +9,9 @@ from api.litellm_client import LiteLLMClient
 # On borne la taille envoyee au LLM : un CV tient largement dans ~6000 caracteres
 # et ca evite des prompts/couts demesures sur un fichier anormalement long.
 _MAX_CV_CHARS = 6000
-_MAX_KEYWORDS = 6
+# Plafond large : on veut un MAXIMUM de mots-cles pour couvrir un maximum d'offres
+# (le scoring se charge ensuite de classer par pertinence).
+_MAX_KEYWORDS = 20
 
 _SYSTEM_PROMPT = (
     "Tu analyses un CV pour preparer une recherche d'emploi. Identifie le domaine "
@@ -17,13 +19,15 @@ _SYSTEM_PROMPT = (
     "RH, commercial, BTP, sante, informatique, etc.) — ne suppose jamais que c'est un "
     "profil tech. Renvoie UNIQUEMENT un objet JSON valide, sans texte autour, au format :\n"
     '{"metier": "<intitule de poste principal>", "mots_cles": ["<mot-cle>", ...]}\n'
-    "Regles pour les mots_cles (3 a 6) :\n"
+    "Regles pour les mots_cles :\n"
+    "- DONNE-EN LE PLUS POSSIBLE (au moins 10, jusqu'a 20) : intitules de poste, "
+    "specialites, technologies/outils, synonymes du metier. Le but est de couvrir un "
+    "MAXIMUM d'offres.\n"
     "- COURTS : 1 a 2 mots maximum, comme on les tape dans un moteur d'emploi "
-    "(ex: 'devops', 'cloud', 'communication', 'comptable', 'marketing').\n"
+    "(ex: 'devops', 'cloud', 'aws', 'terraform', 'communication', 'marketing').\n"
     "- JAMAIS de phrases descriptives ('automatisation d'infrastructure', "
     "'gestion de projet senior') — elles ne renvoient aucune offre.\n"
-    "- des intitules de poste ou domaines larges, en francais ou anglais usuel, "
-    "sans doublon."
+    "- en francais ou anglais usuel, sans doublon."
 )
 
 
