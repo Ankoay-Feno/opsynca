@@ -11,6 +11,7 @@ Architecture provisionnee:
 - 1 budget mensuel optionnel
 - pas de Front Door, pas de CDN payant, pas d'ACR obligatoire, pas de Log Analytics par defaut
 
+
 ## Structure
 
 ```txt
