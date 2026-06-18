@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Briefcase, Menu, X } from "lucide-react";
 
 import { ThemeToggle } from "../../components/ThemeToggle";
 import { profile } from "../data";
@@ -69,7 +69,10 @@ export function Navbar() {
         </nav>
 
         <div className="pf-nav-actions">
-
+          <a className="pf-nav-cta" href="/emplois">
+            <Briefcase size={14} aria-hidden="true" />
+            Emplois
+          </a>
           <ThemeToggle />
           <button
             type="button"
@@ -85,6 +88,9 @@ export function Navbar() {
 
       {open && (
         <div className="pf-nav-mobile" role="menu">
+          <a className="pf-nav-mobile-link" role="menuitem" href="/emplois">
+            <Briefcase size={15} aria-hidden="true" /> Emplois
+          </a>
           {SECTIONS.map((s) => (
             <button
               key={s.id}
