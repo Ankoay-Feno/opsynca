@@ -52,7 +52,7 @@ export function ProcessedCvList({
                 <FileText size={15} aria-hidden="true" />
                 <span className="jobs-cvlist-name">{item.filename}</span>
                 <span className="jobs-cvlist-meta">
-                  {item.response.metier ?? "—"} · {item.response.count} offres ·{" "}
+                  {item.response.metier ?? "—"} · {item.response.count} opportunités ·{" "}
                   {new Date(item.storedAt).toLocaleDateString("fr-FR")}
                 </span>
               </button>

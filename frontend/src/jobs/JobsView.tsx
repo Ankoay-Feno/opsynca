@@ -1,3 +1,4 @@
+import { Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { searchJobs, searchJobsFromCv, searchJobsFromProfile } from "../api";
@@ -42,7 +43,7 @@ export function JobsView() {
 
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = "Recherche d'emploi";
+    document.title = "Découvrir les opportunités";
     document.body.classList.add("pf-body");
     void getAppliedIds().then(setAppliedIds);
     void listProcessedCvs().then(setProcessedCvs);
@@ -63,6 +64,9 @@ export function JobsView() {
     setLoading(true);
     setError(null);
     setHasSearched(true);
+    // Une nouvelle recherche repart d'une liste vide : les anciens résultats
+    // ne doivent pas rester affichés pendant le chargement.
+    setJobs([]);
     try {
       const found = await fetcher(controller.signal);
       setJobs(found);
@@ -182,9 +186,9 @@ export function JobsView() {
       <JobsHeader />
       <main className="jobs-main">
       <header className="jobs-header">
-        <h1 className="jobs-h1">Recherche d'emploi</h1>
+        <h1 className="jobs-h1">Découvrir les opportunités</h1>
         <p className="jobs-sub">
-          Cherche par mot-clé, ou laisse ton CV trouver les offres pour toi.
+          Explore par mot-clé, ou laisse ton CV révéler les opportunités pertinentes.
         </p>
       </header>
 
@@ -271,27 +275,43 @@ export function JobsView() {
       <section className="jobs-results" aria-live="polite" aria-busy={loading}>
         {error ? <p className="jobs-error">{error}</p> : null}
 
-        {!error && hasSearched && !loading ? (
+        {loading ? (
+          <>
+            <p className="jobs-loading">
+              <Loader2 size={15} className="jobs-spin" aria-hidden="true" />
+              Recherche en cours…
+            </p>
+            <div className="jobs-list" aria-hidden="true">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="jobs-skeleton" />
+              ))}
+            </div>
+          </>
+        ) : null}
+
+        {!loading && !error && hasSearched ? (
           <p className="jobs-count">
-            {jobs.length} offre{jobs.length > 1 ? "s" : ""} trouvée
+            {jobs.length} opportunité{jobs.length > 1 ? "s" : ""} trouvée
             {jobs.length > 1 ? "s" : ""}
           </p>
         ) : null}
 
-        {!error && hasSearched && !loading && jobs.length === 0 ? (
-          <p className="jobs-empty">Aucune offre trouvée. Essaie d'autres mots-clés ou sources.</p>
+        {!loading && !error && hasSearched && jobs.length === 0 ? (
+          <p className="jobs-empty">Aucune opportunité trouvée. Essaie d'autres mots-clés ou sources.</p>
         ) : null}
 
-        <div className="jobs-list">
-          {jobs.map((job) => (
-            <JobCard
-              key={job.id}
-              job={job}
-              applied={appliedIds.has(job.id)}
-              onToggleApplied={toggleApplied}
-            />
-          ))}
-        </div>
+        {!loading ? (
+          <div className="jobs-list">
+            {jobs.map((job) => (
+              <JobCard
+                key={job.id}
+                job={job}
+                applied={appliedIds.has(job.id)}
+                onToggleApplied={toggleApplied}
+              />
+            ))}
+          </div>
+        ) : null}
       </section>
       </main>
       <JobsFooter />

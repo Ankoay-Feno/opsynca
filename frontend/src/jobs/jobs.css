@@ -689,3 +689,43 @@ a.jobs-footer-item:hover {
     transform: rotate(360deg);
   }
 }
+
+/* --- État de chargement --- */
+.jobs-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--pf-text-muted);
+}
+
+.jobs-skeleton {
+  height: 96px;
+  border-radius: 12px;
+  border: 1px solid var(--pf-border);
+  background: linear-gradient(
+    100deg,
+    var(--pf-bg-card) 30%,
+    var(--pf-border) 50%,
+    var(--pf-bg-card) 70%
+  );
+  background-size: 200% 100%;
+  animation: jobs-shimmer 1.3s ease-in-out infinite;
+}
+
+@keyframes jobs-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jobs-skeleton {
+    animation: none;
+  }
+}
