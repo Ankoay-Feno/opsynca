@@ -474,6 +474,8 @@ body.pf-body #root {
 .pf-status {
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
+  white-space: nowrap;
   gap: 6px;
   font-family: var(--pf-mono);
   font-size: 11px;
@@ -571,6 +573,8 @@ body.pf-body #root {
 .pf-level {
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
+  white-space: nowrap;
   gap: 8px;
   padding: 6px 14px;
   background: linear-gradient(135deg, rgb(50 108 229 / 16%), rgb(0 212 255 / 10%));
@@ -766,10 +770,12 @@ body.pf-body #root {
 }
 
 .pf-hero-hud {
-  display: inline-flex;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   margin-bottom: 22px;
+  margin-top: 22px;
 }
 
 .pf-hero-eyebrow {
