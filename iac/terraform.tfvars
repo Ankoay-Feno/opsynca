@@ -29,10 +29,11 @@ apps = {
 
       min_replicas = 0
       max_replicas = 1
-      # Embedding local (fastembed) en RAM pour les requetes : palier Azure
-      # 1.0 vCPU / 2.0 GiB (memoire = 2x vCPU impose). scale-to-zero => cout ~0.
-      cpu    = 1.0
-      memory = "2.0Gi"
+      # Embedding local (fastembed + onnxruntime) charge en RAM : 2.0 GiB
+      # provoquait un OOMKilled (exit 137) au boot. Palier Azure superieur :
+      # 2.0 vCPU / 4.0 GiB (memoire = 2x vCPU impose). scale-to-zero => cout ~0.
+      cpu    = 2.0
+      memory = "4.0Gi"
 
       env_vars = {
         EMBEDDING_BACKEND = "local"
