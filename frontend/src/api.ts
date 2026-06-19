@@ -104,15 +104,61 @@ export async function searchJobsFromProfile(
   });
 }
 
+// Le backend tourne en scale-to-zero (Azure Container Apps) : la premiere requete
+// apres une periode d'inactivite tombe pendant le reveil du conteneur (~10-15s) et
+// echoue (erreur reseau "connection refused" ou 502/503/504 du gateway). On absorbe
+// ce cold start avec un retry a backoff, transparent pour l'utilisateur.
+const WAKE_RETRY_STATUSES = new Set([502, 503, 504]);
+const WAKE_RETRY_DELAYS_MS = [1000, 2000, 4000, 6000];
+
 async function requestJson<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, options);
-  const data = await response.json().catch(() => null);
+  const { response, data } = await fetchWithWakeRetry(`${API_BASE_URL}${path}`, options);
 
   if (!response.ok) {
     throw new Error(formatApiError(data, response.status));
   }
 
   return data as T;
+}
+
+async function fetchWithWakeRetry(
+  url: string,
+  options: RequestInit,
+): Promise<{ response: Response; data: unknown }> {
+  for (let attempt = 0; ; attempt++) {
+    const isLast = attempt >= WAKE_RETRY_DELAYS_MS.length;
+    try {
+      const response = await fetch(url, options);
+      const data = await response.json().catch(() => null);
+      // Cold start : le gateway renvoie un 502/503/504 dont le corps n'est PAS notre
+      // JSON d'erreur (data === null). Nos erreurs applicatives sont du JSON => pas de retry.
+      if (isLast || !WAKE_RETRY_STATUSES.has(response.status) || data !== null) {
+        return { response, data };
+      }
+    } catch (error) {
+      // fetch jette = erreur reseau (connection refused pendant le reveil).
+      if (isLast || options.signal?.aborted) throw error;
+    }
+    await delay(WAKE_RETRY_DELAYS_MS[attempt], options.signal);
+  }
+}
+
+function delay(ms: number, signal?: AbortSignal | null): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException("Aborted", "AbortError"));
+      return;
+    }
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(new DOMException("Aborted", "AbortError"));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 }
 
 function formatApiError(data: unknown, status: number): string {
