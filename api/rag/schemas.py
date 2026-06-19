@@ -23,19 +23,19 @@ class EmbedResponse(BaseModel):
 
 class HistoryMessage(BaseModel):
     role: Literal["user", "assistant"]
-    content: str
+    content: str = Field(..., max_length=20_000)
 
 
 class ContextChunk(BaseModel):
-    filename: str | None = None
+    filename: str | None = Field(default=None, max_length=500)
     chunk_index: int | None = None
-    text: str = Field(..., min_length=1)
+    text: str = Field(..., min_length=1, max_length=50_000)
 
 
 class AnswerRequest(BaseModel):
-    message: str = Field(..., min_length=1)
-    context: list[ContextChunk] = Field(default_factory=list)
-    history: list[HistoryMessage] = Field(default_factory=list)
+    message: str = Field(..., min_length=1, max_length=8_000)
+    context: list[ContextChunk] = Field(default_factory=list, max_length=50)
+    history: list[HistoryMessage] = Field(default_factory=list, max_length=50)
 
 
 class WebSource(BaseModel):
