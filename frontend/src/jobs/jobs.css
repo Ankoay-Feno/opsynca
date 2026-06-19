@@ -700,6 +700,13 @@ a.jobs-footer-item:hover {
   color: var(--pf-text-muted);
 }
 
+.jobs-loading-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  color: var(--pf-text-muted);
+  opacity: 0.8;
+}
+
 .jobs-skeleton {
   height: 96px;
   border-radius: 12px;

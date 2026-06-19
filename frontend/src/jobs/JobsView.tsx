@@ -281,6 +281,10 @@ export function JobsView() {
               <Loader2 size={15} className="jobs-spin" aria-hidden="true" />
               Recherche en cours…
             </p>
+            <p className="jobs-loading-hint">
+              Plusieurs sources sont interrogées — cela peut prendre quelques
+              minutes.
+            </p>
             <div className="jobs-list" aria-hidden="true">
               {[0, 1, 2].map((i) => (
                 <div key={i} className="jobs-skeleton" />
