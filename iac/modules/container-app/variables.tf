@@ -59,9 +59,10 @@ variable "scale_rule_name" {
 }
 
 variable "environment_variables" {
-  description = "Plain environment variables."
+  description = "Environment variables. Values may include API keys loaded from backend env files, so the map is treated as sensitive and never rendered in plan/state output."
   type        = map(string)
   default     = {}
+  sensitive   = true
 }
 
 variable "secret_environment_variables" {

@@ -58,11 +58,14 @@ resource "azurerm_container_app" "this" {
       memory = var.memory
 
       dynamic "env" {
-        for_each = var.environment_variables
+        # nonsensitive() pour autoriser l'iteration (les NOMS de variables ne sont
+        # pas secrets) ; sensitive() re-marque chaque VALEUR pour qu'aucune cle API
+        # n'apparaisse en clair dans terraform plan/state.
+        for_each = nonsensitive(var.environment_variables)
 
         content {
           name  = env.key
-          value = env.value
+          value = sensitive(env.value)
         }
       }
 
