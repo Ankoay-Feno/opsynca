@@ -33,8 +33,8 @@ apps = {
       # venait du RE-TELECHARGEMENT du modele a chaque cold start (HF non offline),
       # pas de sa taille : corrige par HF_HUB_OFFLINE=1 (Dockerfile). 1.0 vCPU /
       # 2.0 GiB suffit (batch d'embedding teste OK). scale-to-zero => cout ~0.
-      cpu    = 1.0
-      memory = "2.0Gi"
+      cpu    = 2.0
+      memory = "4.0Gi"
 
       env_vars = {
         EMBEDDING_BACKEND = "local"
