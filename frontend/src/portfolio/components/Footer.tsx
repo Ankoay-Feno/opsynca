@@ -44,7 +44,7 @@ export function Footer() {
           </p>
           <div className="pf-footer-status">
             <StatusDot variant="running" />
-            <span>Ouvert aux opportunités Cloud / DevOps</span>
+            <span>Open to opportunities</span>
           </div>
         </div>
 

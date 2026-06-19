@@ -147,7 +147,20 @@ export const projects: Project[] = [
       "Déploiement Azure : Container Apps + Static Web Apps",
       "CI/CD GitHub Actions avec OIDC Federation",
     ],
-    repo: "https://github.com/Ankoay-Feno/portfolio",
+    repo: "https://github.com/Ankoay-Feno/opsynca",
+  },
+  {
+    title: "Moteur de recherche d'opportunités",
+    description:
+      "Module intégré au portfolio pour explorer les offres par mot-clé ou depuis un CV, avec extraction du profil, agrégation de sources Madagascar/remote et scoring de pertinence.",
+    stack: ["FastAPI", "React", "TypeScript", "LiteLLM", "IndexedDB", "Careerjet", "Jooble"],
+    highlights: [
+      "Recherche par mot-clé ou analyse de CV",
+      "Agrégation d'offres Madagascar et remote",
+      "Matching CV/offres par embeddings et suivi local des candidatures",
+    ],
+    repo: "https://github.com/Ankoay-Feno/opsynca",
+    demo: "/emplois",
   },
 ];
 

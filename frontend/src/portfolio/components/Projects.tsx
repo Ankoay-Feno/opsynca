@@ -4,13 +4,14 @@ import { projects } from "../data";
 import { SectionHeader } from "./About";
 import { RegionTag, StatusDot, TechBadge, VersionBadge } from "./Atoms";
 
-const DIFFICULTY = ["★★★★", "★★★☆", "★★★★★", "★★☆☆", "★★★★"];
+const DIFFICULTY = ["★★★★", "★★★☆", "★★★★★", "★★☆☆", "★★★★", "★★★★"];
 const SERVICE_META = [
   { service: "llmops", version: "v1.4.2", region: "eu-west-1" },
   { service: "ecommerce-platform", version: "v2.1.0", region: "eu-west-1" },
   { service: "serverless-stack", version: "v3.0.1", region: "us-east-1" },
   { service: "mobile-build", version: "v1.0.7", region: "github-actions" },
   { service: "portfolio-azure", version: "v1.0.0", region: "Microsoft Azure" },
+  { service: "opportunity-search", version: "v1.1.0", region: "Madagascar + remote" },
 ];
 
 export function Projects() {
@@ -105,7 +106,9 @@ export function Projects() {
           <div className="pf-service-difficulty">
             <Zap size={12} aria-hidden="true" />
             <span>★★★★★</span>
-            <span className="pf-service-mission">MISSION #06</span>
+            <span className="pf-service-mission">
+              MISSION #{String(projects.length + 1).padStart(2, "0")}
+            </span>
           </div>
 
           <h3 className="pf-service-title">Cluster Kubernetes en production</h3>

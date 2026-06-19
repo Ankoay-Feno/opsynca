@@ -18,8 +18,8 @@ export function Contact() {
         title="Contact"
         subtitle="endpoints/public"
       >
-        Disponible pour discuter d'opportunités Cloud / DevOps via LinkedIn,
-        email ou téléphone.
+        Disponible pour discuter d'opportunités Cloud / DevOps et de
+        collaboration open source.
       </SectionHeader>
 
       <div className="pf-contact-grid">
