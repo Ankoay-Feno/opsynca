@@ -26,9 +26,13 @@ RUN uv sync --frozen --no-dev --extra local-embed
 # Le modele est PRE-TELECHARGE dans le runner CI (etape "Pre-download embedding
 # model") puis copie ici : on evite tout acces reseau HF pendant `docker build`,
 # qui est rate-limite/bloque en anonyme sur les IP GitHub Actions.
+# HF_HUB_OFFLINE=1 : le modele est cuit dans l'image (COPY ci-dessous), donc
+# huggingface_hub ne doit JAMAIS recontacter HF au runtime. Sans ca, chaque cold
+# start (scale-to-zero) revalide/re-telecharge les 225 Mo => boot lent + pic RAM.
 ENV EMBEDDING_BACKEND=local \
     FASTEMBED_CACHE_DIR=/app/.fastembed_cache \
-    LOCAL_EMBEDDING_MODEL=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+    LOCAL_EMBEDDING_MODEL=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 \
+    HF_HUB_OFFLINE=1
 COPY .fastembed_cache /app/.fastembed_cache
 
 COPY api ./api
