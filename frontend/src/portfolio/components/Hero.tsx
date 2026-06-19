@@ -1,4 +1,4 @@
-import { ArrowDownToLine, Github, Linkedin, Mail } from "lucide-react";
+import { Github, Linkedin, Mail } from "lucide-react";
 
 import { profile, socials, stats } from "../data";
 import { K8sWheel, LevelBadge, StatusDot, XPBar } from "./Atoms";
@@ -43,22 +43,21 @@ export function Hero() {
           </div>
 
           <div className="pf-hero-actions">
-
+            {linkedin && (
+              <a
+                className="pf-btn pf-btn-primary"
+                href={linkedin.href}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Linkedin size={16} aria-hidden="true" />
+                Opportunités LinkedIn
+              </a>
+            )}
             <a className="pf-btn pf-btn-ghost" href={`mailto:${profile.email}`}>
               <Mail size={16} aria-hidden="true" />
               Me contacter
             </a>
-            {linkedin && (
-              <a
-                className="pf-btn pf-btn-icon"
-                href={linkedin.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="LinkedIn"
-              >
-                <Linkedin size={18} aria-hidden="true" />
-              </a>
-            )}
             {github && (
               <a
                 className="pf-btn pf-btn-icon"
