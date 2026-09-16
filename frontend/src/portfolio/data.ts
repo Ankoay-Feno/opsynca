@@ -74,8 +74,8 @@ export const experiences: Experience[] = [
     role: "DevOps & Cloud Engineer",
     company: "The Next Mind",
     startDate: "05/2025",
-    endDate: "Présent",
-    current: true,
+    endDate: "09/2026",
+    current: false,
     highlights: [
       "Accélération du time-to-market des services IA grâce à une plateforme LLMOps automatisée (Terraform + Ansible) — déploiements reproductibles, scalables et opérables sans intervention manuelle.",
       "Fiabilité accrue des services d'inférence en production via une architecture conteneurisée (FastAPI · LiteLLM · Gemini · Qdrant · Docker Compose), observable de bout en bout.",
